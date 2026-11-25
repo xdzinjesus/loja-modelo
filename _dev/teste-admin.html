@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Teste admin</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1280px;height:860px;border:0;display:block} #out{white-space:pre-wrap;padding:10px}</style></head>
+<body>
+<pre id="out">RODANDO</pre>
+<iframe id="site"></iframe>
+<iframe id="adm"></iframe>
+<script>
+(async function () {
+  const out = []; let falhas = 0;
+  const log = (ok, msg) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + msg); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(50); } return null; };
+  const tenta = async (fn) => { try { await fn(); return null; } catch (e) { return e; } };
+  const carrega = (el, src) => new Promise((r) => { el.onload = r; el.src = src; });
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+    sessionStorage.clear();
+    const fs = document.getElementById('site'), fa = document.getElementById('adm');
+    await carrega(fs, '/?noanim');
+    const W = fs.contentWindow, D = fs.contentDocument;
+    const errosSite = []; W.addEventListener('error', (e) => errosSite.push(e.message));
+    await ate(() => W.LojaConta && W.LojaApp);
+    const A = W.LojaContas, C = W.LojaCatalog;
+    const p1 = C.produtos.find((p) => !p._granel), p2 = C.produtos.find((p) => p._granel);
+    const item = (p, qty, g = null) => ({ id: p.id, sku: p.codigo_sku, nome: p.nome, g, conteudo: p.conteudo || null, qty, unitario: C.precoDe(p, g ?? undefined), total: C.precoDe(p, g ?? undefined) * qty });
+    const pedido = (itens) => { const st = itens.reduce((s, i) => s + i.total, 0); return { itens, subtotal: st, frete: 0, descontoPix: 0, descontoAtacado: 0, total: st, entrega: { tipo: 'retirada', cep: null }, pagamento: 'pix', cliente: { nome: A.usuario().nome, fone: A.usuario().fone } }; };
+
+    // --- Semente: 3 clientes, pedidos, pedido de atacado, senhas erradas
+    await A.cadastrar({ nome: 'Maria Souza', email: 'maria@teste.com', fone: '49999999999', senha: 'abc12345' });
+    await A.criarPedido(pedido([item(p1, 2)]));
+    await A.solicitarAtacado({ cnpj: '11222333000181', razaoSocial: 'Empório Maria', cidade: 'Concórdia/SC', ramo: 'Mercado / Empório' });
+    await A.sair();
+    await A.cadastrar({ nome: 'João Pereira', email: 'joao@teste.com', fone: '49988887777', senha: 'joao1234' });
+    await A.criarPedido(pedido([item(p2, 1, p2._variacoes[0])]));
+    await A.sair();
+    await A.cadastrar({ nome: 'Ana Lima', email: 'ana@teste.com', fone: '49977776666', senha: 'ana12345' });
+    await A.sair();
+    for (let i = 0; i < 3; i++) await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'errada' + i + 'x' }));
+    localStorage.removeItem('loja:db:tentativas');
+    log(JSON.parse(localStorage.getItem('loja:db:log')).filter((e) => e.tipo === 'login-falhou').length === 3, 'site registra senhas erradas no log');
+
+    // --- Admin: login
+    await carrega(fa, '/admin/');
+    const W2 = fa.contentWindow, D2 = fa.contentDocument;
+    const errosAdm = []; W2.addEventListener('error', (e) => errosAdm.push(e.message));
+    W2.confirm = () => true; W2.prompt = () => 'EXCLUIR';
+    await ate(() => D2.getElementById('f-login'));
+    const fl = D2.getElementById('f-login');
+    fl.elements.pin.value = '0000'; fl.requestSubmit();
+    await ate(() => D2.querySelector('.login__erro')?.textContent.includes('PIN'));
+    log(D2.querySelector('.login__erro').textContent.includes('PIN incorreto'), 'admin: PIN errado recusado');
+    const fl2 = D2.getElementById('f-login'); fl2.elements.pin.value = W.LOJA_CONFIG.contas.painelPin; fl2.requestSubmit();
+    await ate(() => D2.querySelector('.kpis'));
+    log(!!D2.querySelector('.kpis') && D2.getElementById('titulo').textContent === 'Visão geral', 'admin: PIN certo abre a visão geral');
+    const badge = (k) => D2.querySelector(`[data-badge="${k}"]`);
+    log(badge('pedidos').textContent === '2' && badge('atacado').textContent === '1' && badge('acessos').textContent === '1', `admin: alertas no menu (pedidos ${badge('pedidos').textContent}, atacado ${badge('atacado').textContent}, acessos ${badge('acessos').textContent})`);
+    log(D2.querySelectorAll('.atencao a').length === 3, 'visão geral lista 3 itens de atenção');
+    log(D2.querySelectorAll('.grafico .dia').length === 14 && D2.querySelectorAll('.grafico .barra').length >= 1, 'gráfico de 14 dias desenhado');
+    const dia = D2.querySelector('.grafico .dia:last-child .alvo');
+    dia.dispatchEvent(new W2.PointerEvent('pointermove', { bubbles: true }));
+    log(!D2.querySelector('.dica').hidden && D2.querySelector('.dica').textContent.includes('Total'), 'dica do gráfico aparece ao passar o mouse');
+    D2.querySelector('[data-acao="tabela-grafico"]').click(); await espera(80);
+    log(D2.querySelectorAll('.card .tab tbody tr').length === 14, 'gráfico tem visão em tabela');
+
+    // --- Clientes
+    W2.location.hash = '#clientes'; await ate(() => D2.querySelector('tr[data-cliente]'));
+    log(D2.querySelectorAll('tr[data-cliente]').length === 3, 'lista os 3 clientes');
+    const idMaria = A.admin ? JSON.parse(localStorage.getItem('loja:db:usuarios')).find((u) => u.email === 'maria@teste.com').id : '';
+    const idJoao = JSON.parse(localStorage.getItem('loja:db:usuarios')).find((u) => u.email === 'joao@teste.com').id;
+    const idAna = JSON.parse(localStorage.getItem('loja:db:usuarios')).find((u) => u.email === 'ana@teste.com').id;
+    log(D2.querySelector(`tr[data-cliente="${idMaria}"]`).classList.contains('alerta'), 'cliente com 3 senhas erradas fica destacado');
+    D2.querySelector(`tr[data-cliente="${idMaria}"]`).click();
+    await ate(() => D2.getElementById('ficha').classList.contains('on'));
+    log(D2.querySelector('#ficha-painel h2').textContent === 'Maria Souza', 'clicar na linha abre a ficha do cliente');
+    const fp = () => D2.getElementById('ficha-painel');
+
+    // bloquear
+    fp().querySelector('[data-motivo-bloqueio]').value = 'Teste de bloqueio';
+    fp().querySelector('[data-acao="bloquear"]').click();
+    await ate(() => fp().querySelector('[data-acao="desbloquear"]'));
+    let e = await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'abc12345' }));
+    log(e && e.message.includes('bloqueada'), 'conta bloqueada não consegue entrar no site');
+    fp().querySelector('[data-acao="desbloquear"]').click();
+    await ate(() => fp().querySelector('[data-acao="bloquear"]'));
+    e = await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'abc12345' }));
+    log(!e && A.usuario()?.email === 'maria@teste.com', 'desbloqueada volta a entrar');
+    log(A.usuario().notaInterna === undefined && A.usuario().bloqueado === undefined, 'cliente não recebe campos internos');
+
+    // bloquear com o cliente logado derruba a sessão
+    await W2.LojaContas.admin.bloquear(idMaria, true, 'x');
+    log(W.LojaContas.iniciar && (await W.LojaContas.iniciar()) === null, 'bloquear derruba a sessão já aberta do cliente');
+    await W2.LojaContas.admin.bloquear(idMaria, false);
+    W2.document.getElementById('atualizar').click(); await espera(300);
+
+    // editar dados: e-mail duplicado e válido
+    let fd = fp().querySelector('form[data-form="dados"]');
+    fd.elements.email.value = 'joao@teste.com'; fd.requestSubmit();
+    await ate(() => fp().querySelector('[data-campo="email"].erro'));
+    log(!!fp().querySelector('[data-campo="email"].erro'), 'editar: e-mail de outro cliente é recusado');
+    fd = fp().querySelector('form[data-form="dados"]');
+    fd.elements.email.value = 'maria.souza@teste.com'; fd.elements.fone.value = '(49) 91234-5678'; fd.requestSubmit();
+    await ate(() => fp().querySelector('#ficha-painel small')?.textContent === 'maria.souza@teste.com' || fp().querySelector('.ficha__topo small').textContent === 'maria.souza@teste.com');
+    e = await tenta(() => A.entrar({ email: 'maria.souza@teste.com', senha: 'abc12345' }));
+    log(!e, 'editar e-mail: cliente entra com o e-mail novo');
+
+    // observação interna
+    const fn = fp().querySelector('form[data-form="nota"]'); fn.elements.notaInterna.value = 'Prefere retirar sábado'; fn.requestSubmit();
+    await espera(400);
+    const uAdm = (await W2.LojaContas.admin.usuarios()).find((u) => u.id === idMaria);
+    log(uAdm.notaInterna === 'Prefere retirar sábado' && A.usuario().notaInterna === undefined, 'observação interna salva e invisível para o cliente');
+
+    // aprovar atacado pela aba Atacado com desconto individual
+    W2.LojaContas.admin; fp().querySelector('[data-fechar]').click();
+    W2.location.hash = '#atacado'; await ate(() => D2.querySelector('.empresa'));
+    const card = D2.querySelector(`.empresa[data-usuario="${idMaria}"]`);
+    card.querySelector('[data-desconto]').value = '10';
+    card.querySelector('[data-acao="aprovar"]').click();
+    await ate(() => !D2.querySelector(`.empresa[data-usuario="${idMaria}"]`));
+    const um = (await W2.LojaContas.admin.usuarios()).find((u) => u.id === idMaria);
+    log(um.atacado.status === 'aprovado' && um.atacado.descontoPercentual === 10, 'aprovar atacado com desconto individual de 10%');
+
+    // checkout no site aplica 10%
+    await W.LojaContas.iniciar();
+    W.LojaApp.repetirItens([{ id: p1.id, g: null, qty: 1, nome: p1.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    log(D.getElementById('checkout-content').textContent.includes('Desconto atacado (10%)'), 'checkout do cliente aplica o desconto individual');
+    W.LojaApp.closeAll(true);
+
+    // desconto inline na tabela de ativos
+    D2.querySelector('.seg [data-v="ativos"]').click(); await espera(100);
+    const linha = D2.querySelector(`tr[data-usuario="${idMaria}"]`);
+    linha.querySelector('[data-desconto]').value = '';
+    linha.querySelector('[data-acao="salvar-desconto"]').click(); await espera(400);
+    log((await W2.LojaContas.admin.usuarios()).find((u) => u.id === idMaria).atacado.descontoPercentual === undefined, 'desconto vazio volta ao padrão da loja');
+    // revogar
+    D2.querySelector(`tr[data-usuario="${idMaria}"] [data-acao="recusar"]`).click(); await espera(500);
+    log((await W2.LojaContas.admin.usuarios()).find((u) => u.id === idMaria).atacado.status === 'recusado', 'revogar acesso de atacado');
+
+    // pedidos: mudar status
+    W2.location.hash = '#pedidos'; await ate(() => D2.querySelector('.ped'));
+    log(D2.querySelectorAll('.ped').length === 2, 'pedidos em andamento listados');
+    D2.querySelector('[data-acao="abrir-pedido"]').click(); await espera(100);
+    const ped = D2.querySelector('.ped.aberto');
+    ped.querySelector('[data-novo-status]').value = 'pronto'; ped.querySelector('[data-nota]').value = 'Pode retirar!';
+    ped.querySelector('[data-acao="status"]').click(); await espera(500);
+    const pid = ped.dataset.pedido;
+    const pedAtual = JSON.parse(localStorage.getItem('loja:db:pedidos')).find((p) => p.id === pid);
+    log(pedAtual.status === 'pronto' && pedAtual.historico.at(-1).nota === 'Pode retirar!', 'status do pedido atualizado com recado');
+    D2.querySelector('.seg [data-v="atacado"]') ; D2.querySelector('[data-f="tipo"]').value = 'atacado'; D2.querySelector('[data-f="tipo"]').dispatchEvent(new W2.Event('change', { bubbles: true })); await espera(100);
+    log(D2.querySelectorAll('.ped').length === 0, 'filtro "só atacado" funciona');
+
+    // senha temporária
+    W2.location.hash = '#clientes/' + idAna; await ate(() => D2.getElementById('ficha').classList.contains('on'));
+    fp().querySelector('[data-acao="senha-temp"]').click();
+    await ate(() => fp().querySelector('.senha-temp'));
+    const temp = fp().querySelector('.senha-temp')?.textContent;
+    e = await tenta(() => A.entrar({ email: 'ana@teste.com', senha: temp }));
+    log(!!temp && !e && A.usuario().senhaTemporaria === true, 'senha temporária funciona no site → ' + temp);
+
+    // excluir João
+    W2.location.hash = '#clientes/' + idJoao; await ate(() => fp().querySelector('h2')?.textContent === 'João Pereira');
+    fp().querySelector('[data-acao="excluir"]').click();
+    await ate(() => !D2.getElementById('ficha').classList.contains('on'));
+    const us = JSON.parse(localStorage.getItem('loja:db:usuarios'));
+    log(!us.some((u) => u.id === idJoao) && JSON.parse(localStorage.getItem('loja:db:pedidos')).find((p) => p.usuarioId === idJoao).contaExcluida === true, 'excluir conta remove o login e mantém o pedido marcado');
+    e = await tenta(() => A.entrar({ email: 'joao@teste.com', senha: 'joao1234' }));
+    log(!!e, 'conta excluída não entra mais');
+
+    // acessos
+    W2.location.hash = '#acessos'; await ate(() => D2.getElementById('titulo').textContent === 'Acessos' && D2.querySelector('#conteudo .tab'));
+    const txt = D2.getElementById('conteudo').textContent;
+    log(txt.includes('Senha errada') && txt.includes('Loja bloqueou conta') && txt.includes('Loja excluiu conta') && txt.includes('Criou conta'), 'acessos mostram logins, falhas e ações da loja');
+    D2.querySelector('.seg [data-v="falhas"]').click(); await espera(100);
+    const pills = [...D2.querySelectorAll('#conteudo tbody .pill')];
+    log(pills.length > 0 && pills.every((p) => p.classList.contains('pill--terra')), `filtro "falhas e bloqueios" funciona (${pills.length} registros)`);
+
+    // CSV (gera sem erro)
+    let gerou = 0; const orig = W2.URL.createObjectURL; W2.URL.createObjectURL = (b) => { gerou++; return orig(b); };
+    D2.querySelector('[data-acao="csv-acessos"]').click();
+    W2.location.hash = '#clientes'; await ate(() => D2.querySelector('[data-acao="csv-clientes"]')); D2.querySelector('[data-acao="csv-clientes"]').click();
+    W2.location.hash = '#pedidos'; await ate(() => D2.querySelector('[data-acao="csv-pedidos"]')); D2.querySelector('[data-acao="csv-pedidos"]').click();
+    log(gerou === 3, 'exporta 3 planilhas CSV');
+
+    // Produtos e fotos → "Sem foto": contagem por departamento + planilha da lista na tela
+    W2.location.hash = '#fotos'; await ate(() => D2.querySelector('[data-fotos-seg]'));
+    D2.querySelector('[data-fotos-seg] [data-v="sem"]').click(); await ate(() => D2.querySelector('[data-fotos-depto]'));
+    const depto = D2.querySelector('[data-fotos-depto]')?.textContent || '';
+    const nSem = +((D2.querySelector('[data-fotos-seg] [data-v="sem"]').textContent.match(/\((\d+)\)/) || [])[1]);
+    const somaDepto = [...D2.querySelectorAll('[data-fotos-depto] b')].reduce((s, b) => s + +(b.nextSibling.textContent.match(/\d+/) || [0])[0], 0);
+    log(/Sem foto por departamento/.test(depto) && somaDepto === nSem, `"Sem foto": contagem por departamento soma ${somaDepto} = ${nSem}`);
+    let planilha = null; const A2 = W2.LojaAdmin, origCSV = A2.baixarCSV; A2.baixarCSV = (nome, cab, linhas) => { planilha = { nome, cab, linhas }; };
+    D2.querySelector('[data-fotos-csv]').click(); A2.baixarCSV = origCSV;
+    log(planilha && planilha.nome === 'produtos-sem-foto' && planilha.linhas.length === nSem && planilha.cab.join('|') === 'Código|Nome|Departamento|Subcategoria|Situação da foto' && planilha.linhas.every((l) => /^Sem foto/.test(l[4])),
+      `"Baixar planilha (CSV)" exporta os ${planilha && planilha.linhas.length} produtos sem foto`);
+
+    // sair
+    D2.getElementById('sair').click(); await ate(() => D2.getElementById('f-login'));
+    log(!!D2.getElementById('f-login') && D2.getElementById('adm').hidden, 'sair volta para a tela de PIN');
+    log(errosSite.length === 0 && errosAdm.length === 0, 'sem erros de JavaScript' + (errosSite.concat(errosAdm).length ? ' → ' + errosSite.concat(errosAdm).join(' | ') : ''));
+  } catch (err) { log(false, 'EXCEÇÃO: ' + err.message + '\n' + err.stack); }
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto }).catch(() => {});
+})();
+</script>
+</body></html>

@@ -1,0 +1,10 @@
+# Kadosh — buscadores podem indexar a loja; áreas internas ficam de fora
+User-agent: *
+Disallow: /admin/
+Disallow: /_dev/
+Disallow: /_backup/
+Disallow: /tools/
+Disallow: /docs/
+Disallow: /fotos/
+
+# Sitemap: https://www.SEU-DOMINIO.com.br/sitemap.xml   [TROCAR: rode tools/gerar-sitemap.ps1 com o dominio]

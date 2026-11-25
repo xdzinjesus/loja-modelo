@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importador de Catálogo</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --forest:#173A24; --leaf:#3F7D34; --lime:#7DBE3C; --terra:#A5442A; --cream:#F3EBDC; --paper:#FBF7EF; --ink:#1D271E; --muted:#6E7466; --line:rgba(29,39,30,.12); }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 Manrope, system-ui, sans-serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--forest); color:var(--cream); padding:22px 28px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font:600 26px Fraunces, serif; margin:0; } header p { margin:2px 0 0; opacity:.75; font-size:13px; }
+  main { max-width:1200px; margin:0 auto; padding:24px 20px 60px; }
+  .drop { border:2px dashed var(--leaf); border-radius:20px; padding:30px; text-align:center; background:#fff; cursor:pointer; transition:background .2s; }
+  .drop.over { background:#EEF5E4; } .drop b { color:var(--forest); font-size:18px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:22px 0; }
+  .stat { background:#fff; border-radius:16px; padding:16px; box-shadow:inset 0 0 0 1px var(--line); }
+  .stat b { display:block; font:600 30px Fraunces, serif; color:var(--forest); } .stat span { color:var(--muted); font-size:13px; font-weight:600; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0; }
+  button, select, input { font:inherit; } button { cursor:pointer; border:0; border-radius:999px; padding:11px 18px; font-weight:700; background:var(--cream); color:var(--forest); }
+  button.primary { background:var(--forest); color:var(--cream); } button.terra { background:var(--terra); color:#fff; } button:disabled { opacity:.4; cursor:default; }
+  select, input[type=search] { padding:10px 14px; border-radius:999px; border:1.5px solid var(--line); background:#fff; }
+  .cats { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:8px; }
+  .cat { background:#fff; border-radius:12px; padding:10px 14px; box-shadow:inset 0 0 0 1px var(--line); font-size:13.5px; }
+  .cat b { color:var(--forest); } .cat small { color:var(--muted); display:block; }
+  table { width:100%; border-collapse:collapse; background:#fff; border-radius:14px; overflow:hidden; font-size:13px; }
+  th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+  th { background:var(--cream); font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; position:sticky; top:0; }
+  td img { width:44px; height:44px; border-radius:8px; object-fit:cover; display:block; }
+  .orig { color:var(--muted); font-size:11.5px; } .warn { color:var(--terra); font-weight:700; }
+  .log { background:#fff; border-radius:12px; padding:12px 14px; font:12.5px ui-monospace, Consolas, monospace; max-height:180px; overflow:auto; box-shadow:inset 0 0 0 1px var(--line); white-space:pre-wrap; }
+  .tablewrap { max-height:70vh; overflow:auto; border-radius:14px; box-shadow:inset 0 0 0 1px var(--line); }
+  .toast { position:fixed; bottom:20px; left:50%; translate:-50% 0; background:var(--forest); color:var(--cream); padding:12px 18px; border-radius:14px; font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Importador de Catálogo</h1><p>Lê o PDF "Produtos-Resumidos", classifica cada item e gera <code>data/produtos.js</code>.</p></div>
+  <a href="../index.html" style="color:var(--lime);font-weight:700">← Voltar ao site</a>
+</header>
+<main>
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept="application/pdf" hidden>
+    <b>Arraste o PDF do catálogo aqui</b><br><span style="color:var(--muted)">ou clique para escolher o arquivo</span>
+  </label>
+
+  <div class="stats" id="stats" hidden></div>
+  <div id="result" hidden>
+    <div class="row">
+      <button class="primary" id="save">Salvar no projeto (data/produtos.js)</button>
+      <button id="download">Baixar produtos.js</button>
+      <span id="saveinfo" style="color:var(--muted);font-size:13px"></span>
+    </div>
+    <h3>Distribuição por departamento</h3>
+    <div class="cats" id="cats"></div>
+    <h3>Revisão</h3>
+    <div class="row">
+      <select id="fcat"><option value="">Todos os departamentos</option></select>
+      <select id="fsub"><option value="">Todas as subcategorias</option></select>
+      <input type="search" id="fq" placeholder="Filtrar por nome ou código…">
+      <span id="fcount" style="color:var(--muted);font-size:13px"></span>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Foto</th><th>Código</th><th>Produto</th><th>Departamento / Sub</th><th>Preço</th><th>Selos</th></tr></thead><tbody id="tbody"></tbody></table></div>
+    <h3>Linhas não reconhecidas / ocultas</h3>
+    <div class="log" id="log"></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="../assets/js/config.js"></script>
+<script src="classificador.js"></script>
+<script>
+(function () {
+  const K = window.LojaClassificador, CFG = window.LOJA_CONFIG;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+  const brl = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const catNome = Object.fromEntries(CFG.categorias.map((c) => [c.slug, c.nome]));
+  let produtos = [], fonte = '';
+
+  async function lerPdf(buffer) {
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const linhas = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const tc = await (await pdf.getPage(p)).getTextContent();
+      const rows = new Map();
+      for (const it of tc.items) {
+        if (!it.str.trim()) continue;
+        const y = Math.round(it.transform[5] / 2) * 2;
+        const key = [...rows.keys()].find((k) => Math.abs(k - y) <= 2) ?? y;
+        if (!rows.has(key)) rows.set(key, []);
+        rows.get(key).push({ x: it.transform[4], s: it.str });
+      }
+      [...rows.entries()].sort((a, b) => b[0] - a[0]).forEach(([, items]) => linhas.push(items.sort((a, b) => a.x - b.x).map((i) => i.s).join(' ')));
+    }
+    return { linhas, paginas: pdf.numPages };
+  }
+
+  async function processar(buffer, nome) {
+    fonte = nome;
+    $('#drop').innerHTML = '<b>Lendo PDF…</b>';
+    const { linhas, paginas } = await lerPdf(buffer);
+    const lidos = [], ignoradas = [], ocultos = [];
+    for (const l of linhas) {
+      const r = K.lerLinha(l);
+      if (!r) { if (/R\$/.test(l)) ignoradas.push(l); continue; }
+      lidos.push(r);
+    }
+    // remove códigos duplicados (fica o primeiro)
+    const vistos = new Set();
+    produtos = [];
+    for (const r of lidos) {
+      // códigos repetidos no PDF recebem sufixo (-2, -3…) para não perder o item
+      let cod = r.codigo, k = 2;
+      while (vistos.has(cod)) cod = `${r.codigo}-${k++}`;
+      vistos.add(cod); r.codigo = cod;
+      const p = K.classificar(r);
+      if (p) produtos.push(p); else ocultos.push(`${r.codigo} ${r.nomeOriginal} R$ ${r.preco}`);
+    }
+    const porCat = {};
+    produtos.forEach((p) => { (porCat[p.categoria] ||= {}); porCat[p.categoria][p.subcategoria] = (porCat[p.categoria][p.subcategoria] || 0) + 1; });
+    const outros = produtos.filter((p) => p.subcategoria === 'Outros').length;
+
+    $('#drop').innerHTML = `<b>${esc(nome)}</b><br><span style="color:var(--muted)">${paginas} páginas · clique para trocar o arquivo</span>`;
+    $('#stats').hidden = false;
+    $('#stats').innerHTML = [
+      [lidos.length, 'linhas de produto lidas'], [produtos.length, 'produtos na vitrine'], [ocultos.length, 'itens internos ocultos'],
+      [produtos.filter((p) => p.unidade_medida === 'kg').length, 'itens a granel'], [outros, 'sem departamento definido']
+    ].map(([v, t]) => `<div class="stat"><b>${v.toLocaleString('pt-BR')}</b><span>${t}</span></div>`).join('');
+    $('#cats').innerHTML = Object.entries(porCat).sort((a, b) => sum(b[1]) - sum(a[1])).map(([c, subs]) =>
+      `<div class="cat"><b>${esc(catNome[c] || c)}</b> — ${sum(subs)}<small>${Object.entries(subs).sort((a, b) => b[1] - a[1]).map(([s, n]) => `${esc(s)} (${n})`).join(' · ')}</small></div>`).join('');
+    $('#fcat').innerHTML = '<option value="">Todos os departamentos</option>' + Object.keys(porCat).map((c) => `<option value="${c}">${esc(catNome[c] || c)}</option>`).join('');
+    $('#log').textContent = [...ignoradas.map((l) => 'NÃO LIDA: ' + l), ...ocultos.map((l) => 'OCULTA:   ' + l)].join('\n') || 'Nenhuma.';
+    $('#result').hidden = false;
+    renderTabela();
+  }
+  const sum = (o) => Object.values(o).reduce((a, b) => a + b, 0);
+
+  function renderTabela() {
+    const c = $('#fcat').value, s = $('#fsub').value, q = K.N($('#fq').value);
+    const subs = [...new Set(produtos.filter((p) => !c || p.categoria === c).map((p) => p.subcategoria))].sort();
+    const atual = $('#fsub').value;
+    $('#fsub').innerHTML = '<option value="">Todas as subcategorias</option>' + subs.map((x) => `<option ${x === atual ? 'selected' : ''}>${esc(x)}</option>`).join('');
+    const lista = produtos.filter((p) => (!c || p.categoria === c) && (!s || p.subcategoria === s) && (!q || K.N(p.nome + ' ' + p.codigo_sku).includes(q)));
+    $('#fcount').textContent = `${lista.length} itens`;
+    $('#tbody').innerHTML = lista.slice(0, 400).map((p) => `<tr>
+      <td><img loading="lazy" src="https://images.unsplash.com/photo-${p.imagem_url}?w=88&h=88&fit=crop&q=50" alt=""></td>
+      <td>${esc(p.codigo_sku)}</td>
+      <td><b>${esc(p.nome)}</b>${p.conteudo ? `<div class="orig">${esc(p.conteudo)}</div>` : ''}</td>
+      <td>${esc(catNome[p.categoria] || p.categoria)}<div class="orig ${p.subcategoria === 'Outros' ? 'warn' : ''}">${esc(p.subcategoria)}</div></td>
+      <td>${brl(p.preco)}/${p.unidade_medida}</td>
+      <td class="orig">${p.tags_restricao.join(', ')}</td></tr>`).join('') + (lista.length > 400 ? `<tr><td colspan="6" class="orig">+${lista.length - 400} itens (use os filtros)</td></tr>` : '');
+  }
+  ['#fcat', '#fsub'].forEach((s) => $(s).addEventListener('change', renderTabela));
+  $('#fq').addEventListener('input', renderTabela);
+
+  function gerarArquivo() {
+    const linhas = produtos.map((p) => '  ' + JSON.stringify(p)).join(',\n');
+    return `/* ==========================================================================\n   LOJA — Catálogo gerado automaticamente por tools/importar-catalogo.html\n   Fonte: ${fonte}\n   Gerado em: ${new Date().toLocaleString('pt-BR')} · ${produtos.length} produtos\n   Para ajustar um item, edite tools/classificador.js (regras ou OVERRIDES)\n   e importe o PDF novamente.\n   ========================================================================== */\nwindow.LOJA_CATALOGO_INFO = ${JSON.stringify({ fonte, gerado: new Date().toISOString(), total: produtos.length })};\nwindow.LOJA_PRODUTOS = [\n${linhas}\n];\n`;
+  }
+  $('#download').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([gerarArquivo()], { type: 'application/javascript' }));
+    a.download = 'produtos.js'; a.click();
+  });
+  $('#save').addEventListener('click', async () => {
+    try {
+      const r = await fetch('/_save', { method: 'POST', headers: { 'Content-Type': 'application/javascript' }, body: gerarArquivo() });
+      if (!r.ok) throw new Error(r.status);
+      $('#saveinfo').textContent = `✓ Salvo em data/produtos.js (${produtos.length} produtos) — recarregue o site.`;
+    } catch (e) {
+      $('#saveinfo').textContent = 'Não foi possível salvar direto (abra pelo servidor local _dev/serve.ps1). Use "Baixar produtos.js" e substitua o arquivo em data/.';
+    }
+  });
+
+  const input = $('#file'), drop = $('#drop');
+  input.addEventListener('change', () => input.files[0] && input.files[0].arrayBuffer().then((b) => processar(b, input.files[0].name)));
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', (e) => { e.preventDefault(); drop.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) f.arrayBuffer().then((b) => processar(b, f.name)); });
+
+  // ?pdf=caminho carrega automaticamente (útil com o servidor local)
+  const auto = new URLSearchParams(location.search).get('pdf');
+  const nomeExibicao = new URLSearchParams(location.search).get('nome');
+  if (auto) fetch(auto).then((r) => r.arrayBuffer()).then((b) => processar(b, nomeExibicao || decodeURIComponent(auto.split('/').pop())));
+  window.__importador = { get produtos() { return produtos; }, gerarArquivo };
+})();
+</script>
+</body>
+</html>

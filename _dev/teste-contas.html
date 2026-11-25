@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Teste contas</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1280px;height:860px;border:0;display:block} #out{white-space:pre-wrap;padding:10px}</style></head>
+<body>
+<pre id="out">RODANDO</pre>
+<iframe id="f"></iframe>
+<script>
+(async function () {
+  const out = []; let falhas = 0;
+  const log = (ok, msg) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + msg); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(50); } return null; };
+  const params = new URLSearchParams(location.search);
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+    sessionStorage.clear();
+    const f = document.getElementById('f');
+    f.src = '/?noanim';
+    await new Promise((r) => (f.onload = r));
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => erros.push(e.message));
+    await ate(() => W.LojaConta && W.LojaApp);
+    log(!!W.LojaConta, 'módulo conta carregado');
+    const A = W.LojaContas;
+    const tenta = async (fn) => { try { await fn(); return null; } catch (e) { return e; } };
+
+    /* ---------- Camada de dados ---------- */
+    let e = await tenta(() => A.cadastrar({ nome: 'Maria', email: 'x', fone: '1', senha: '1' }));
+    log(e && e.campo === 'nome', 'cadastro: nome sem sobrenome recusado → ' + (e && e.message));
+    e = await tenta(() => A.cadastrar({ nome: 'Maria Souza', email: 'maria@', fone: '49999999999', senha: 'abc12345' }));
+    log(e && e.campo === 'email', 'cadastro: e-mail inválido recusado');
+    e = await tenta(() => A.cadastrar({ nome: 'Maria Souza', email: 'maria@teste.com', fone: '49999999999', senha: 'abcdefgh' }));
+    log(e && e.campo === 'senha', 'cadastro: senha sem número recusada');
+    const u1 = await A.cadastrar({ nome: 'Maria  Souza', email: 'Maria@Teste.com', fone: '(49) 99999-9999', senha: 'abc12345' });
+    log(u1.email === 'maria@teste.com' && u1.nome === 'Maria Souza' && u1.fone === '49999999999' && !u1.senha, 'cadastro válido normaliza dados e não expõe senha');
+    const raw = JSON.parse(localStorage.getItem('loja:db:usuarios'))[0];
+    log(raw.senha.hash && raw.senha.hash !== 'abc12345' && raw.senha.iter === 120000, 'senha guardada como hash PBKDF2');
+    e = await tenta(() => A.cadastrar({ nome: 'Outra Pessoa', email: 'maria@teste.com', fone: '49988887777', senha: 'abc12345' }));
+    log(e && e.campo === 'email', 'cadastro: e-mail duplicado recusado');
+    await A.sair(); log(A.usuario() === null, 'sair limpa sessão');
+    e = await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'errada123' }));
+    log(e && e.message.includes('incorretos'), 'login com senha errada recusado');
+    await A.entrar({ email: 'MARIA@teste.com', senha: 'abc12345' });
+    log(A.usuario()?.nome === 'Maria Souza', 'login correto (e-mail sem diferenciar maiúsculas)');
+    e = await tenta(() => A.solicitarAtacado({ cnpj: '11.222.333/0001-00', razaoSocial: 'Empório X', cidade: 'Concórdia/SC', ramo: 'Outro' }));
+    log(e && e.campo === 'cnpj', 'atacado: CNPJ com dígito errado recusado');
+    await A.solicitarAtacado({ cnpj: '11.222.333/0001-81', razaoSocial: 'Empório Teste Ltda', cidade: 'Concórdia/SC', ramo: 'Mercado / Empório' });
+    log(A.usuario().atacado.status === 'pendente' && A.usuario().atacado.cnpj === '11222333000181', 'atacado: solicitação válida fica pendente');
+    e = await tenta(() => A.solicitarAtacado({ cnpj: '11.222.333/0001-81', razaoSocial: 'Empório Teste Ltda', cidade: 'Concórdia/SC', ramo: 'Outro' }));
+    log(!!e, 'atacado: não deixa solicitar duas vezes');
+
+    // limite de tentativas
+    await A.sair();
+    for (let i = 0; i < 5; i++) await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'errada' + i + 'x' }));
+    e = await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'abc12345' }));
+    log(e && e.message.includes('Muitas tentativas'), 'bloqueio após 5 senhas erradas → ' + (e && e.message));
+    localStorage.removeItem('loja:db:tentativas');
+    await A.entrar({ email: 'maria@teste.com', senha: 'abc12345' });
+
+    /* ---------- Interface: cabeçalho ---------- */
+    const btnConta = D.querySelector('.header [data-open="modal-conta"]');
+    log(btnConta.querySelector('span').textContent === 'Maria', 'cabeçalho mostra o primeiro nome → ' + btnConta.querySelector('span').textContent);
+
+    /* ---------- Interface: checkout logado salva pedido ---------- */
+    const C = W.LojaCatalog;
+    const granel = C.produtos.find((p) => p._granel), un = C.produtos.find((p) => !p._granel);
+    W.LojaApp.repetirItens([{ id: granel.id, g: granel._variacoes[1], qty: 2, nome: granel.nome }, { id: un.id, g: null, qty: 1, nome: un.nome }]);
+    D.getElementById('go-checkout').click();
+    await espera(200);
+    log(D.getElementById('ck-nome').value === 'Maria Souza' && D.getElementById('ck-fone').value === '(49) 99999-9999', 'checkout pré-preenche nome e WhatsApp da conta');
+    log(!!D.querySelector('.ck__conta') && D.querySelector('.ck__conta').textContent.includes('Comprando como'), 'checkout mostra "Comprando como"');
+    D.querySelector('[data-ck="next"]').click(); await espera(100);
+    D.querySelector('[data-ck="next"]').click(); await espera(100);
+    D.querySelector('[data-ck="confirm"]').click();
+    await ate(() => D.querySelector('.ck__done'));
+    const titulo = D.querySelector('.ck__done h3').textContent;
+    const pedidos = await A.listarPedidos();
+    log(pedidos.length === 1 && titulo.includes(pedidos[0].id), 'pedido confirmado salvo na conta → ' + titulo);
+    const p0 = pedidos[0];
+    log(p0.itens.length === 2 && p0.itens[0].g === granel._variacoes[1] && p0.itens[0].qty === 2 && Math.abs(p0.total - (p0.subtotal + p0.frete - p0.descontoPix - p0.descontoAtacado)) < 0.011, 'itens, peso e totais do pedido corretos (total ' + p0.total + ')');
+    log(JSON.parse(localStorage.getItem('loja:cart') || '[]').length === 0, 'carrinho esvaziado após confirmar');
+    log(!!D.querySelector('[data-ck="pedidos"]'), 'tela final oferece "Acompanhar em Meus pedidos"');
+
+    /* ---------- Interface: aba pedidos ---------- */
+    D.querySelector('[data-ck="pedidos"]').click();
+    await ate(() => D.querySelector('#conta-content .pedido'));
+    log(D.querySelector('#modal-conta').classList.contains('is-open') && !!D.querySelector('#conta-content .pedido'), 'Meus pedidos lista o pedido');
+    log(!!D.querySelector('.pedido.is-open'), 'pedido em andamento já abre expandido');
+    if (!D.querySelector('.pedido.is-open')) { D.querySelector('[data-acao="abrir-pedido"]').click(); await espera(100); }
+    log(D.querySelectorAll('.trilha li').length === 5 && D.querySelector('.trilha li.atual span').textContent === 'Recebido', 'detalhe mostra a linha do tempo (Recebido)');
+    W.confirm = () => true;
+    D.querySelector('[data-acao="cancelar"]').click();
+    await ate(() => D.querySelector('.trilha--cancelado'));
+    log(!!D.querySelector('.trilha--cancelado') && (await A.listarPedidos())[0].status === 'cancelado', 'cliente cancela pedido "Recebido"');
+    D.querySelector('[data-acao="repetir"]').click(); await espera(200);
+    log(JSON.parse(localStorage.getItem('loja:cart')).length === 2 && D.getElementById('drawer-cart').classList.contains('is-open'), 'repetir pedido devolve itens ao carrinho e abre o carrinho');
+
+    /* ---------- Painel da loja (mesma API, modo admin) ---------- */
+    e = await tenta(() => A.admin.entrar({ pin: '0000' }));
+    log(e && e.campo === 'pin', 'painel: PIN errado recusado');
+    await A.admin.entrar({ pin: W.LOJA_CONFIG.contas.painelPin });
+    const us = await A.admin.usuarios(); const pa = await A.admin.pedidos();
+    log(us.length === 1 && !us[0].senha && pa.length === 1 && pa[0].conta.email === 'maria@teste.com', 'painel lista clientes (sem senha) e pedidos com dados da conta');
+    await A.admin.responderAtacado(us[0].id, true);
+    log(A.usuario().atacado.status === 'aprovado', 'painel aprova atacado e a conta do cliente atualiza na hora');
+    // novo pedido, painel muda status com recado
+    W.LojaApp.abrirCheckout(); await espera(100);
+    D.querySelector('[data-ck="next"]').click(); await espera(80);
+    D.querySelector('[data-ck="next"]').click(); await espera(80);
+    D.querySelector('[data-ck="confirm"]').click(); await ate(() => D.querySelector('.ck__done'));
+    const novo = (await A.listarPedidos())[0];
+    log(novo.atacado === true, 'pedido de conta atacado aprovada sai marcado como atacado');
+    await A.admin.atualizarStatus(novo.id, 'separando', 'Separando sua castanha fresquinha');
+    const atual = (await A.listarPedidos()).find((x) => x.id === novo.id);
+    log(atual.status === 'separando' && atual.historico.at(-1).nota.includes('fresquinha'), 'painel muda status e o cliente vê o recado');
+    e = await tenta(() => A.cancelarPedido(novo.id));
+    log(e && e.message.includes('andamento'), 'cliente não cancela pedido já em andamento');
+
+    // senha temporária
+    const temp = await A.admin.senhaTemporaria(us[0].id);
+    await A.sair();
+    e = await tenta(() => A.entrar({ email: 'maria@teste.com', senha: 'abc12345' }));
+    log(!!e, 'senha antiga deixa de funcionar após senha temporária');
+    const ut = await A.entrar({ email: 'maria@teste.com', senha: temp });
+    log(ut.senhaTemporaria === true, 'entra com senha temporária (marcada para troca) → ' + temp);
+    e = await tenta(() => A.alterarSenha({ atual: 'xxx', nova: 'nova12345' }));
+    log(e && e.campo === 'atual', 'alterar senha exige a senha atual correta');
+    await A.alterarSenha({ atual: temp, nova: 'nova12345' });
+    log(!A.usuario().senhaTemporaria, 'troca de senha remove a marca de temporária');
+    await A.sair(); await A.entrar({ email: 'maria@teste.com', senha: 'nova12345' });
+    log(!!A.usuario(), 'entra com a senha nova');
+
+    /* ---------- Interface: cadastro pelo formulário ---------- */
+    await A.sair();
+    W.LojaConta.abrir('cadastro'); await espera(150);
+    const fm = D.querySelector('form[data-form="cadastro"]');
+    const set = (n, v) => { const i = fm.elements[n]; i.value = v; i.dispatchEvent(new W.Event('input', { bubbles: true })); };
+    set('nome', 'João Pereira'); set('email', 'joao@teste.com'); set('fone', '49988887777'); set('senha', 'joao1234');
+    log(fm.elements.fone.value === '(49) 98888-7777', 'máscara de WhatsApp → ' + fm.elements.fone.value);
+    fm.requestSubmit(); await espera(300);
+    log(!D.querySelector('form[data-form="cadastro"] .form-erro').hidden, 'formulário exige aceite LGPD');
+    D.querySelector('form[data-form="cadastro"]').elements.aceite.checked = true;
+    D.querySelector('form[data-form="cadastro"]').requestSubmit();
+    await ate(() => A.usuario() && D.querySelector('.conta-painel'));
+    log(A.usuario()?.email === 'joao@teste.com' && !!D.querySelector('.conta-painel'), 'cadastro pela interface entra direto no painel');
+    log(D.querySelector('.header [data-open="modal-conta"] span').textContent === 'João', 'cabeçalho atualiza para o novo cliente');
+    D.querySelector('[data-tela="atacado"]').click(); await espera(100);
+    const fa = D.querySelector('form[data-form="atacado"]');
+    fa.elements.cnpj.value = '11222333000181'; fa.elements.cnpj.dispatchEvent(new W.Event('input', { bubbles: true }));
+    log(fa.elements.cnpj.value === '11.222.333/0001-81', 'máscara de CNPJ → ' + fa.elements.cnpj.value);
+    fa.elements.razaoSocial.value = 'Outro Empório'; fa.elements.cidade.value = 'Chapecó/SC'; fa.elements.ramo.value = 'Outro';
+    fa.requestSubmit(); await ate(() => D.querySelector('.field.is-error, .conta-status'));
+    log(D.querySelector('[data-campo="cnpj"]')?.classList.contains('is-error'), 'mesmo CNPJ em outra conta é barrado no formulário');
+
+    /* ---------- Conta só é pedida ao finalizar a compra ---------- */
+    await A.sair(); W.LojaApp.closeAll(true);
+    log(!D.getElementById('modal-conta').classList.contains('is-open'), 'site não abre a conta sozinho');
+    W.LojaApp.repetirItens([{ id: un.id, g: null, qty: 1, nome: un.nome }]);
+    W.LojaApp.openPanel('drawer-cart'); await espera(100);
+    D.getElementById('go-checkout').click(); await espera(250);
+    log(D.getElementById('modal-conta').classList.contains('is-open') && !D.getElementById('modal-checkout').classList.contains('is-open'), '"Finalizar compra" sem login pede a conta (e não abre o checkout)');
+    log(D.querySelector('#conta-content h3').textContent === 'Entre para finalizar' && D.querySelector('#conta-content').textContent.includes('Falta pouco'), 'tela mostra o aviso de finalizar pedido');
+    D.querySelector('#conta-content [data-tela="cadastro"]').click(); await espera(100);
+    log(D.querySelector('#conta-content').textContent.includes('Falta pouco'), 'aviso continua ao trocar para "Criar conta"');
+    D.querySelector('#conta-content [data-tela="entrar"]').click(); await espera(100);
+    const fe = D.querySelector('form[data-form="entrar"]');
+    fe.elements.email.value = 'joao@teste.com'; fe.elements.senha.value = 'joao1234'; fe.requestSubmit();
+    await ate(() => D.getElementById('modal-checkout').classList.contains('is-open'));
+    log(D.getElementById('modal-checkout').classList.contains('is-open') && D.getElementById('ck-nome').value === 'João Pereira', 'após entrar, o checkout abre sozinho e já preenchido');
+    W.LojaApp.closeAll(true);
+    D.querySelector('.header [data-open="modal-conta"]').click(); await espera(150);
+    await A.sair(); await espera(150);
+    log(!D.querySelector('#conta-content').textContent.includes('Falta pouco'), 'botão "Conta" do cabeçalho abre sem o aviso de checkout');
+
+    log(erros.length === 0, 'sem erros de JavaScript na página' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+
+    // estado final para print
+    const tela = params.get('tela');
+    if (tela) {
+      await A.sair();
+      if (tela !== 'entrar') await A.entrar({ email: 'maria@teste.com', senha: 'nova12345' });
+      W.LojaApp.closeAll(true);
+      W.LojaConta.abrir(tela); await espera(400);
+      if (tela === 'pedidos') { D.querySelector('[data-acao="abrir-pedido"]')?.click(); await espera(300); }
+    }
+  } catch (err) { log(false, 'EXCEÇÃO: ' + err.message + '\n' + err.stack); }
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  document.title = 'FIM';
+  if (!params.get('tela')) fetch('/_save-tmp', { method: 'POST', body: texto }).catch(() => {});
+})();
+</script>
+</body></html>

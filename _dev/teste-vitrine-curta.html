@@ -1,0 +1,71 @@
+<!doctype html><meta charset="utf-8"><title>Teste vitrine curta</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1366px;height:860px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// A vitrine não cresce sozinha ao rolar: quem só passa por ela chega logo em "Atacado & Revenda".
+// "Ver mais" carrega mais; "Mostrar menos" recolhe e deixa a pessoa no fim da vitrine.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  // rola como uma pessoa: de 300 em 300 px, até o topo de #atacado passar do meio da tela
+  async function rolaAteAtacado(W, D) {
+    W.scrollTo({ top: D.getElementById('vitrine').offsetTop, behavior: 'instant' }); await espera(300);
+    for (let i = 0; i < 400; i++) {
+      if (D.getElementById('atacado').getBoundingClientRect().top < W.innerHeight / 2) break;
+      W.scrollBy({ top: 300, behavior: 'instant' }); await espera(70);
+    }
+    await espera(300);
+  }
+  const fileiras = (D) => { const cs = [...D.querySelectorAll('#grid .pcard')]; return new Set(cs.map((c) => Math.round(c.getBoundingClientRect().top + D.defaultView.scrollY))).size; };
+  async function caso(id, nome) {
+    const f = document.getElementById(id);
+    await carrega(f, '/?noanim'); await espera(1500);
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    const n0 = D.querySelectorAll('#grid .pcard').length;
+    await rolaAteAtacado(W, D);
+    const n1 = D.querySelectorAll('#grid .pcard').length;
+    const topo = (el) => el.getBoundingClientRect().top + W.scrollY; // offsetTop é relativo ao bloco da loja, não à página
+    const dist = Math.round(topo(D.getElementById('atacado')) - topo(D.getElementById('grid')));
+    out.push(`--- ${nome}: ${n0} produtos ao abrir → ${n1} ao chegar no Atacado; ${fileiras(D)} fileiras; da vitrine ao Atacado: ${dist} px (${(dist / W.innerHeight).toFixed(1)} telas)`);
+    return { W, D, n0, n1, dist, erros };
+  }
+  try {
+    const pc = await caso('pc', 'PC 1366');
+    log(pc.n1 === pc.n0, `PC: rolar até o Atacado não carrega produtos sozinho (${pc.n0} → ${pc.n1})`);
+    log(pc.n0 === 16, `PC: começa com 16 produtos (4 fileiras de 4) — tem ${pc.n0}`);
+    const cel = await caso('cel', 'celular 390');
+    log(cel.n1 === cel.n0, `celular: rolar até o Atacado não carrega produtos sozinho (${cel.n0} → ${cel.n1})`);
+    log(cel.n0 === 12, `celular: começa com 12 produtos (6 fileiras de 2) — tem ${cel.n0}`);
+    log(pc.dist / pc.W.innerHeight < 3 && cel.dist / cel.W.innerHeight < 4.5, `da vitrine ao Atacado: PC ${(pc.dist / pc.W.innerHeight).toFixed(1)} telas (< 3), celular ${(cel.dist / cel.W.innerHeight).toFixed(1)} (< 4,5)`);
+
+    // Ver mais / Mostrar menos (PC)
+    const { W, D } = pc, $ = (s) => D.querySelector(s);
+    const mais = $('#more-btn'), menos = $('#less-btn');
+    log(!!menos && menos.hidden, '"Mostrar menos" existe e fica escondido enquanto não carregou mais');
+    mais.click(); await espera(150); mais.click(); await espera(150);
+    const n2 = D.querySelectorAll('#grid .pcard').length;
+    log(n2 === pc.n0 + 32 && !menos.hidden, `"Ver mais" 2× carrega mais 32 (${n2}) e mostra "Mostrar menos"`);
+    log(/Ver mais produtos \([\d.]+ restantes\)/.test(mais.textContent), `botão diz quantos faltam: "${mais.textContent.trim()}"`);
+    menos.click(); await espera(400);
+    const n3 = D.querySelectorAll('#grid .pcard').length, r = mais.getBoundingClientRect();
+    log(n3 === pc.n0 && menos.hidden, `"Mostrar menos" volta para ${pc.n0} produtos (${n3})`);
+    log(r.top >= 0 && r.bottom <= W.innerHeight, `depois de recolher, a pessoa continua no fim da vitrine (botão "Ver mais" na tela, y=${Math.round(r.top)})`);
+    const ata = D.getElementById('atacado').getBoundingClientRect().top;
+    log(ata < W.innerHeight * 2, `…e o Atacado está logo abaixo (${Math.round(ata)} px)`);
+    // filtro novo volta ao começo, sem "Mostrar menos"
+    mais.click(); await espera(150);
+    $('[data-cat]')?.click(); await espera(400);
+    log(menos.hidden && D.querySelectorAll('#grid .pcard').length <= 16, 'trocar de departamento recomeça a vitrine (sem "Mostrar menos")');
+
+    log(pc.erros.length + cel.erros.length === 0, 'sem erros de JavaScript' + (pc.erros.concat(cel.erros).length ? ' → ' + pc.erros.concat(cel.erros).join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

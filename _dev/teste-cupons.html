@@ -1,0 +1,142 @@
+<!doctype html><meta charset="utf-8"><title>Teste cupons</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1280px;height:900px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// Cupom de desconto (assets/js/cupons.js) + campo "Tenho um cupom" no checkout.
+// Os cupons do teste são colocados no LOJA_CONFIG da página (os de config.js vêm desligados).
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(60); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  const limpar = () => Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+  const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const CUPONS = [
+    { codigo: 'BEMVINDO10', tipo: 'percentual', valor: 10, minimo: 0, validade: '', primeiroPedido: true, ativo: true },
+    { codigo: 'MENOS30', tipo: 'valor', valor: 30, minimo: 0, validade: hojeISO, ativo: true },
+    { codigo: 'VELHO', tipo: 'percentual', valor: 50, validade: '2020-01-31', ativo: true },
+    { codigo: 'MIN150', tipo: 'percentual', valor: 5, minimo: 150, ativo: true },
+    { codigo: 'FRETE', tipo: 'frete', valor: 0, minimo: 0, ativo: true },
+    { codigo: 'DESLIGADO', tipo: 'percentual', valor: 90, ativo: false }
+  ];
+  try {
+    limpar();
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim');
+    const W = f.contentWindow, D = f.contentDocument, $ = (s) => D.querySelector(s);
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    const K = W.LojaCupons, C = W.LojaCatalog, brl = C.brl;
+    log(!!K, 'módulo LojaCupons carregou');
+    log((W.LOJA_CONFIG.cupons || []).every((c) => c.ativo === false), 'cupons de exemplo do config.js vêm desligados');
+
+    // sem cupom ativo: o campo nem aparece
+    const A = W.LojaContas;
+    await A.cadastrar({ nome: 'Teste Cupom', email: 'cupom@teste.com', fone: '49999990000', senha: 'teste1234' });
+    const prod = C.produtos.find((p) => !p._granel && p.preco >= 40 && p.preco <= 80);
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 3, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    $('[data-ck="next"]').click(); await espera(150);
+    log(/Etapa 2/.test($('#checkout-content').textContent) && !$('.ck__cupom'), 'sem cupom ativo na loja: o campo "Tenho um cupom" não aparece');
+    W.LojaApp.closeAll(true);
+
+    W.LOJA_CONFIG.cupons = CUPONS;
+    // ---------- regras ----------
+    const r = (cod, ctx) => K.calcular(cod, Object.assign({ base: 200, frete: 24.9, temPedidos: false }, ctx));
+    let x = r('  bemvindo 10 ');
+    log(x.ok && x.desconto === 20, 'minúsculas e espaços: "bemvindo 10" = BEMVINDO10, 10% de R$ 200 = R$ 20');
+    x = r('NAOEXISTE'); log(!x.ok && /não encontrado/i.test(x.motivo), `cupom inexistente: "${x.motivo}"`);
+    x = r('DESLIGADO'); log(!x.ok && /não encontrado/i.test(x.motivo), 'cupom desligado (ativo: false) não vale');
+    x = r('VELHO'); log(!x.ok && /venceu em 31\/01\/2020/.test(x.motivo), `cupom vencido: "${x.motivo}"`);
+    x = r('MENOS30'); log(x.ok && x.desconto === 30, 'validade = hoje: ainda vale (até 23:59)');
+    x = r('MENOS30', { hoje: new Date(Date.now() + 86400000) }); log(!x.ok, 'validade = hoje: amanhã já não vale');
+    x = r('MENOS30', { base: 20 }); log(x.ok && x.desconto === 20, 'valor fixo nunca passa do subtotal (R$ 30 em pedido de R$ 20 = R$ 20)');
+    x = r('MIN150', { base: 100 }); log(!x.ok && x.motivo.includes(brl(150)) && x.motivo.includes(brl(50)), `pedido mínimo: "${x.motivo}"`);
+    x = r('BEMVINDO10', { temPedidos: true }); log(!x.ok && /primeiro pedido/.test(x.motivo), 'só no 1º pedido: conta com pedido não usa');
+    x = r('BEMVINDO10', { temPedidos: null }); log(!x.ok && /confirmar/.test(x.motivo), 'só no 1º pedido: se não deu para conferir o histórico, NÃO libera (achado do Codex)');
+    x = r('FRETE'); log(x.ok && x.freteGratis && x.desconto === 0, 'cupom de frete: frete grátis');
+    x = r('FRETE', { frete: 0 }); log(x.ok && /já é grátis/.test(x.motivo), 'cupom de frete com frete já grátis avisa');
+    log(K.rotulo(CUPONS[0]) === '10% de desconto' && K.rotulo(CUPONS[1]) === `${brl(30)} de desconto` && K.rotulo(CUPONS[4]) === 'Frete grátis', 'textos curtos do benefício');
+
+    // ---------- checkout ----------
+    W.LojaApp.abrirCheckout(); await espera(200);
+    $('[data-ck="next"]').click(); await espera(150);
+    const cup = $('details.ck__cupom');
+    log(!!cup && /Tenho um cupom/.test(cup.textContent), 'com cupom ativo: aparece "Tenho um cupom de desconto" na etapa do pagamento');
+    cup.open = true;
+    $('#ck-cupom').value = 'xyz'; $('[data-ck="cupom"]').click();
+    await ate(() => $('.ck__cupomerro'));
+    log(/não encontrado/i.test($('.ck__cupomerro')?.textContent || '') && !/Cupom XYZ/.test($('.ck__sum').textContent), 'código errado: mostra o motivo e não dá desconto');
+    $('#ck-cupom').value = 'bemvindo10';
+    $('#ck-cupom').dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await ate(() => $('.ck__cupom.is-ok'));
+    const st = prod.preco * 3, desc = st * 0.10, pix = (st - desc) * 0.05, total = st - desc - pix;
+    log(!!$('.ck__cupom.is-ok') && /Etapa 2/.test($('#checkout-content').textContent), 'Enter no campo aplica o cupom (sem pular de etapa)');
+    const soma = $('.ck__sum').textContent;
+    log(soma.includes('Cupom BEMVINDO10') && soma.includes('-' + brl(desc)) && soma.includes(brl(total)),
+      `resumo: subtotal ${brl(st)} − cupom ${brl(desc)} − Pix 5% ${brl(pix)} = ${brl(total)}`);
+    $('[data-ck="next"]').click(); await espera(150);
+    log(/Etapa 3/.test($('#checkout-content').textContent) && $('.ck__sum').textContent.includes('Cupom BEMVINDO10'), 'revisão mostra o cupom');
+    $('[data-ck="confirm"]').click();
+    await ate(() => $('.ck__done'));
+    const ped = (await A.listarPedidos())[0];
+    log(ped && ped.cupom && ped.cupom.codigo === 'BEMVINDO10' && Math.abs(ped.cupom.desconto - Math.round(desc * 100) / 100) < 0.01 && Math.abs(ped.total - Math.round(total * 100) / 100) < 0.01,
+      `pedido salvo com o cupom e o total certo (${ped && brl(ped.total)})`);
+    let msg = ''; W.open = (u) => { msg = decodeURIComponent(String(u).split('text=')[1] || ''); return null; };
+    $('[data-ck="wa"]').click(); await espera(100);
+    log(msg.includes('Cupom BEMVINDO10: -' + brl(Math.round(desc * 100) / 100)), 'mensagem do WhatsApp traz o cupom');
+    W.LojaApp.closeAll(true);
+
+    // segunda compra: BEMVINDO10 não vale mais; cupom não fica grudado
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 3, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    $('[data-ck="next"]').click(); await espera(150);
+    log(!$('.ck__cupom.is-ok') && !$('.ck__sum').textContent.includes('Cupom'), 'nova compra começa sem cupom');
+    $('details.ck__cupom').open = true; $('#ck-cupom').value = 'BEMVINDO10'; $('[data-ck="cupom"]').click();
+    await ate(() => $('.ck__cupomerro'));
+    log(/primeiro pedido/.test($('.ck__cupomerro')?.textContent || ''), '2º pedido: BEMVINDO10 explica que vale só no primeiro');
+    $('#ck-cupom').value = 'MENOS30'; $('[data-ck="cupom"]').click();
+    await ate(() => $('.ck__cupom.is-ok'));
+    log($('.ck__sum').textContent.includes('-' + brl(30)), 'trocar por outro cupom (R$ 30) funciona');
+    $('[data-ck="cupom-tirar"]').click(); await espera(100);
+    log(!$('.ck__sum').textContent.includes('Cupom') && !!$('details.ck__cupom'), '"Remover" tira o desconto');
+    W.LojaApp.closeAll(true);
+
+    // conta nova aplica o cupom de 1º pedido, mas faz um pedido em outra aba antes de confirmar → o cupom é recusado na confirmação
+    await A.cadastrar({ nome: 'Teste Outra Aba', email: 'outra-aba@teste.com', fone: '49999990001', senha: 'teste1234' });
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    $('[data-ck="next"]').click(); await espera(150);
+    $('details.ck__cupom').open = true; $('#ck-cupom').value = 'BEMVINDO10'; $('[data-ck="cupom"]').click();
+    await ate(() => $('.ck__cupom.is-ok'));
+    log(!!$('.ck__cupom.is-ok'), 'conta nova: BEMVINDO10 vale');
+    await A.criarPedido({ itens: [{ id: prod.id, sku: prod.codigo_sku, nome: prod.nome, qty: 1, unitario: prod.preco, total: prod.preco }], subtotal: prod.preco, frete: 0, total: prod.preco, entrega: { tipo: 'retirada' }, pagamento: 'pix', cliente: { nome: 'x', fone: 'y' } });
+    $('[data-ck="next"]').click(); await espera(150);
+    $('[data-ck="confirm"]').click();
+    await ate(() => $('.ck__cupomerro'));
+    log(/Etapa 2/.test($('#checkout-content').textContent) && /primeiro pedido/.test($('.ck__cupomerro')?.textContent || '') && (await A.listarPedidos()).length === 1,
+      'pedido feito em outra aba: ao confirmar, o cupom é recusado e volta para o pagamento (nenhum pedido com cupom)');
+    W.LojaApp.closeAll(true);
+
+    // ---------- celular ----------
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim'); const Wc = fc.contentWindow, Dc = fc.contentDocument;
+    Wc.LOJA_CONFIG.cupons = CUPONS;
+    Wc.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    Wc.LojaApp.abrirCheckout(); await espera(250);
+    Dc.querySelector('[data-ck="next"]').click(); await espera(150);
+    Dc.querySelector('details.ck__cupom').open = true; await espera(50);
+    const card = Dc.querySelector('#modal-checkout .modal__card') || Dc.querySelector('#modal-checkout');
+    const btn = Dc.querySelector('[data-ck="cupom"]').getBoundingClientRect(), campo = Dc.querySelector('#ck-cupom').getBoundingClientRect();
+    log(card.scrollWidth <= card.clientWidth + 1 && btn.right <= Wc.innerWidth && campo.width >= 150, `celular: campo do cupom e botão cabem (campo ${Math.round(campo.width)} px, botão até ${Math.round(btn.right)} de ${Wc.innerWidth})`);
+
+    log(erros.length === 0, 'sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  limpar();
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

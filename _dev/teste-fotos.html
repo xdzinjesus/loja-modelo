@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf-8"><title>Teste fotos</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1280px;height:860px;border:0}</style>
+<pre id="out">RODANDO</pre><iframe id="f"></iframe>
+<script>
+// Confere se TODA foto da pasta fotos/ (via data/fotos-reais.js) aparece no produto certo e carrega de verdade.
+(async () => {
+  const f = document.getElementById('f'); const out = [];
+  await new Promise((r) => { f.onload = r; f.src = '/?noanim'; });
+  const W = f.contentWindow, D = f.contentDocument;
+  for (let i = 0; i < 100 && !W.LojaCatalog; i++) await new Promise((r) => setTimeout(r, 50));
+  const C = W.LojaCatalog, REAIS = W.LOJA_FOTOS_REAIS;
+  const codigos = Object.keys(REAIS);
+  let usa = 0, carrega = 0; const errados = [], quebradas = [], semProduto = [];
+  for (const c of codigos) {
+    const p = C.porId.get(c);
+    if (!p) { semProduto.push(c); continue; }
+    if (p._img === REAIS[c]) usa++; else errados.push(`${c} → ${p._img}`);
+  }
+  // carrega cada arquivo de verdade
+  await Promise.all(codigos.map((c) => new Promise((r) => { const im = new Image(); im.onload = () => { if (im.naturalWidth > 0) carrega++; r(); }; im.onerror = () => { quebradas.push(c); r(); }; im.src = '/' + REAIS[c]; })));
+  out.push(`fotos na lista do site: ${codigos.length}`);
+  out.push(`produtos usando a foto real: ${usa}`);
+  out.push(`arquivos que carregam no navegador: ${carrega}`);
+  if (semProduto.length) out.push(`fotos sem produto no catálogo: ${semProduto.join(', ')}`);
+  if (errados.length) out.push(`produto NÃO usa a foto: ${errados.slice(0, 10).join(' | ')}`);
+  if (quebradas.length) out.push(`arquivo quebrado: ${quebradas.join(', ')}`);
+  // abre a "espiada rápida" de um produto novo do Codex, como o cliente vê
+  const alvo = new URLSearchParams(location.search).get('p') || '4423';
+  D.getElementById('search-input').value = C.porId.get(alvo).nome.split(' ').slice(0, 3).join(' ');
+  D.getElementById('search-input').dispatchEvent(new W.Event('input', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 600));
+  const img = D.querySelector(`#search-results img[src*="produtos/${alvo}"]`);
+  out.push(`busca mostra a foto nova do ${alvo}: ${!!img}`);
+  out.unshift(!errados.length && !quebradas.length && usa === codigos.length - semProduto.length ? 'RESULTADO: TUDO OK' : 'RESULTADO: PROBLEMAS');
+  const texto = out.join('\n'); document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

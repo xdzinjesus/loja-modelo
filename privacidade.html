@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacidade e Termos de Uso — Sua Loja</title>
+  <meta name="description" content="Como a Sua Loja usa e protege seus dados (LGPD) e as regras de uso do site.">
+  <meta name="theme-color" content="#1F2937">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231F2937'/%3E%3Cpath d='M20 44c0-14 10-24 26-26-2 16-12 26-26 26z' fill='%237DBE3C'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/fonts.css">
+  <style>
+    /* Página independente: usa as mesmas cores e fontes do site (assets/css/styles.css → :root) */
+    :root { --forest: #1F2937; --leaf: #2563EB; --lime: #60A5FA; --cream: #F3F4F6; --paper: #F9FAFB; --card: #FFFFFF; --ink: #111827; --ink-2: #374151; --muted: #6B7280; --line: rgba(17, 24, 39, .11);
+      --f-display: 'Fraunces', Georgia, serif; --f-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.65 var(--f-body); }
+    a { color: var(--leaf); font-weight: 700; text-underline-offset: 3px; }
+    a:focus-visible { outline: 2px solid var(--leaf); outline-offset: 3px; border-radius: 4px; }
+    .topo { position: sticky; top: 0; z-index: 2; background: var(--forest); color: var(--cream); }
+    .topo__in { max-width: 860px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .topo img { height: 44px; width: auto; display: block; }
+    .topo a { color: var(--cream); font-size: 14px; }
+    main { max-width: 860px; margin: 0 auto; padding: 36px 16px 64px; }
+    .eyebrow { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--leaf); }
+    h1 { font-family: var(--f-display); font-weight: 600; font-size: clamp(30px, 5vw, 46px); line-height: 1.1; color: var(--forest); margin: 8px 0 10px; }
+    h2 { font-family: var(--f-display); font-weight: 600; font-size: clamp(24px, 3.4vw, 32px); color: var(--forest); margin: 48px 0 6px; padding-top: 24px; border-top: 1px solid var(--line); }
+    h3 { font-size: 17px; color: var(--forest); margin: 26px 0 4px; }
+    p, li { color: var(--ink-2); }
+    ul { padding-left: 22px; }
+    li { margin: 4px 0; }
+    .sub { color: var(--muted); margin: 0 0 22px; }
+    .indice { background: var(--card); border-radius: 18px; box-shadow: inset 0 0 0 1px var(--line); padding: 18px 22px; }
+    .indice b { display: block; margin-bottom: 6px; color: var(--forest); }
+    .indice ol { margin: 0; padding-left: 20px; columns: 2 240px; column-gap: 28px; }
+    .indice li { margin: 0; padding: 3px 0; break-inside: avoid; }
+    .quadro { background: var(--card); border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); padding: 4px 18px; margin: 14px 0; }
+    .tabela { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 12px 0; }
+    .tabela th, .tabela td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .tabela th { color: var(--forest); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+    .rolagem { overflow-x: auto; }
+    .rodape { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+    @media (max-width: 640px) {
+      .tabela thead { display: none; }
+      .tabela tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .tabela td { display: block; border: 0; padding: 3px 0; }
+      .tabela td:first-child { font-weight: 800; color: var(--forest); }
+    }
+  </style>
+</head>
+<body>
+<!-- [CONFIRMAR COM O CLIENTE] Texto-base escrito a partir do que o site realmente faz (checado no código em 24/11/2026).
+     Antes de publicar: preencher CNPJ e e-mail do encarregado, e pedir revisão do contador/assessoria jurídica da loja.
+     Se o site passar a usar backend, gateway de pagamento, Google Analytics, Pixel etc., atualizar as seções 3, 4 e 6. -->
+<header class="topo">
+  <div class="topo__in">
+    <a href="index.html" aria-label="Voltar para a loja"><img src="assets/img/logo.svg" alt="Sua Loja"></a>
+    <a href="index.html">← Voltar para a loja</a>
+  </div>
+</header>
+
+<main>
+  <p class="eyebrow">Transparência</p>
+  <h1>Privacidade e Termos de Uso</h1>
+  <p class="sub">Última atualização: 24 de novembro de 2026</p>
+
+  <nav class="indice" aria-label="Nesta página">
+    <b>Nesta página</b>
+    <ol>
+      <li><a href="#quem">Quem cuida dos seus dados</a></li>
+      <li><a href="#dados">Quais dados usamos e por quê</a></li>
+      <li><a href="#aparelho">O que fica salvo no seu aparelho</a></li>
+      <li><a href="#terceiros">Serviços de outras empresas</a></li>
+      <li><a href="#tempo">Por quanto tempo guardamos</a></li>
+      <li><a href="#direitos">Seus direitos (LGPD)</a></li>
+      <li><a href="#seguranca">Segurança</a></li>
+      <li><a href="#termos">Termos de uso do site</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="quem">1. Quem cuida dos seus dados</h2>
+  <p>A <b>[Razão social da empresa]</b> (CNPJ [00.000.000/0000-00]) é a controladora dos dados pessoais tratados neste site, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).</p>
+  <div class="quadro">
+    <ul>
+      <li><b>Endereço:</b> [Endereço completo]</li>
+      <li><b>WhatsApp:</b> <a href="https://wa.me/5549999346333" target="_blank" rel="noopener">[(00) 00000-0000]</a> · <b>Telefone:</b> <a href="tel:+554932116015">[(00) 0000-0000]</a></li>
+      <li><b>CNPJ:</b> <!-- CONFIRMAR COM O CLIENTE --> a informar</li>
+      <li><b>Encarregado pelos dados (LGPD):</b> <!-- CONFIRMAR COM O CLIENTE: nome e e-mail --> atendimento da loja, pelos canais acima</li>
+    </ul>
+  </div>
+
+  <h2 id="dados">2. Quais dados usamos e por quê</h2>
+  <p>Pedimos só o necessário para atender você. Não vendemos nem alugamos seus dados.</p>
+  <div class="rolagem">
+    <table class="tabela">
+      <thead><tr><th>Quando</th><th>Dados</th><th>Para quê</th></tr></thead>
+      <tbody>
+        <tr><td>Criar conta</td><td>Nome, e-mail, WhatsApp e senha</td><td>Entrar na conta, guardar seus pedidos e falar com você sobre eles. No modo local, este navegador guarda um hash com sal calculado com PBKDF2 a partir da senha. A senha original não é armazenada.</td></tr>
+        <tr><td>Finalizar compra</td><td>Nome, WhatsApp, itens, valores, forma de pagamento e observações do pedido</td><td>Separar, cobrar e confirmar o pedido.</td></tr>
+        <tr><td>Entrega em casa</td><td>Endereço (rua, número, complemento, bairro, CEP, cidade), ponto de referência, instruções de entrega e, se informado, nome e telefone de quem vai receber</td><td>Entregar o pedido no lugar certo.</td></tr>
+        <tr><td>“Usar minha localização”</td><td>Coordenadas do aparelho, só quando você toca no botão e autoriza no navegador</td><td>Preencher o endereço automaticamente e mostrar o local no mapa para o entregador.</td></tr>
+        <tr><td>Conta atacado</td><td>CNPJ, razão social, cidade e tipo de negócio</td><td>Analisar o cadastro de revenda e oferecer condições de atacado.</td></tr>
+        <tr><td>Cotação e pedido rápido de atacado</td><td>Nome, empresa/CNPJ (opcional), cidade e os produtos escolhidos</td><td>Montar a mensagem que você envia ao nosso WhatsApp comercial. Esses dados de contato não ficam salvos no site.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Bases legais (art. 7º da LGPD):</b> execução do pedido ou de procedimentos que você solicitou (compra, entrega, cotação), cumprimento de obrigações legais (por exemplo, fiscais), e o seu consentimento para receber contato sobre os pedidos, dado ao criar a conta.</p>
+  <p>O site <b>não</b> usa ferramentas de propaganda ou de rastreamento (como pixels de redes sociais) nem coleta dados de cartão: pagamentos com cartão são feitos na maquininha, na retirada ou na entrega.</p>
+
+  <h2 id="aparelho">3. O que fica salvo no seu aparelho</h2>
+  <p>Para o site lembrar de você, algumas informações ficam guardadas <b>no próprio navegador</b> (armazenamento local, parecido com cookies): carrinho, lista de desejos, produtos vistos recentemente, itens do pedido rápido, endereços salvos e a sessão da sua conta.</p>
+  <p>Na versão atual, em modo local, os dados da conta e os pedidos ficam guardados neste navegador. Por isso, eles não aparecem em outros navegadores ou aparelhos. Na versão de produção, a conta e os pedidos serão guardados em um banco de dados no servidor e acessados pelo site por meio de uma API.</p>
+  <p>Você pode apagar os dados locais limpando os dados de navegação deste site. O site não usa cookies de publicidade.</p>
+
+  <h2 id="terceiros">4. Serviços de outras empresas</h2>
+  <p>Algumas funções dependem de serviços externos. Eles recebem apenas o necessário para funcionar e seguem as próprias políticas de privacidade:</p>
+  <ul>
+    <li><b>WhatsApp (Meta):</b> ao abrir um link de WhatsApp com uma mensagem pronta, o texto é encaminhado ao serviço do WhatsApp pelo próprio link. A loja só recebe a mensagem quando você confirma o envio no WhatsApp.</li>
+    <li><b>ViaCEP:</b> recebe o CEP ou o nome da rua que você digita, para completar o endereço.</li>
+    <li><b>OpenStreetMap (Nominatim):</b> recebe as coordenadas quando você usa “Usar minha localização”, para descobrir o endereço.</li>
+    <li><b>Google Maps:</b> mostra o mapa da loja e abre rotas e endereços de entrega no mapa.</li>
+    <li><b>Bancos de imagens (Unsplash, Pixabay):</b> algumas fotos ilustrativas são carregadas desses sites; como em qualquer site, o seu navegador informa o endereço de internet (IP) ao baixá-las.</li>
+  </ul>
+
+  <h2 id="tempo">5. Por quanto tempo guardamos</h2>
+  <p>Os dados da conta ficam guardados enquanto a conta existir. Os dados dos pedidos são mantidos pelo tempo necessário para o atendimento, trocas e o cumprimento de obrigações legais e fiscais. Depois disso, são excluídos ou tornados anônimos.</p>
+
+  <h2 id="direitos">6. Seus direitos (LGPD)</h2>
+  <p>Você pode, a qualquer momento e sem custo (art. 18 da LGPD):</p>
+  <ul>
+    <li>confirmar se tratamos seus dados e ter acesso a eles;</li>
+    <li>corrigir dados incompletos ou desatualizados (nome e WhatsApp podem ser alterados em <b>Minha conta → Meus dados</b>);</li>
+    <li>pedir a anonimização, o bloqueio ou a exclusão de dados desnecessários ou tratados em desacordo com a lei;</li>
+    <li>pedir a portabilidade dos seus dados;</li>
+    <li>saber com quem compartilhamos seus dados;</li>
+    <li>retirar o consentimento e pedir a exclusão da conta.</li>
+  </ul>
+  <p>Para exercer esses direitos, fale com a gente pelo <a href="https://wa.me/5549999346333" target="_blank" rel="noopener">WhatsApp [(00) 00000-0000]</a>, pelo telefone [(00) 0000-0000] ou na loja. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).</p>
+
+  <h2 id="seguranca">7. Segurança</h2>
+  <p>Usamos medidas técnicas para proteger seus dados, como o uso de hash com sal para guardar a senha no modo local e o acesso restrito à área administrativa. Nenhum sistema é 100% seguro: se acontecer um incidente que possa causar risco a você, avisaremos e comunicaremos a ANPD, como manda a lei.</p>
+
+  <h2 id="termos">8. Termos de uso do site</h2>
+  <h3>Produtos, preços e fotos</h3>
+  <p>Preços, estoque e sabores podem mudar sem aviso e são confirmados pela equipe da loja antes da finalização do pedido. Produtos a granel são pesados na hora; o valor final segue o peso separado. Algumas fotos são <b>ilustrativas</b> (banco de imagens ou geradas por inteligência artificial) e podem não corresponder exatamente à embalagem ou à marca do produto.</p>
+  <h3>Pedidos</h3>
+  <p>O pedido feito pelo site ou pelo WhatsApp é uma solicitação: ele é confirmado pela loja, que informa disponibilidade, frete e forma de pagamento. Em compras feitas a distância, você tem o direito de desistir em até 7 dias a partir do recebimento (art. 49 do Código de Defesa do Consumidor); fale com a gente pelo WhatsApp.</p>
+  <h3>Conta</h3>
+  <p>Você é responsável por manter sua senha em segredo e por informar dados verdadeiros. Contas usadas para fraude ou de forma abusiva podem ser bloqueadas.</p>
+  <h3>Atacado</h3>
+  <p>Condições de atacado (tabela, pedido mínimo e descontos) são informadas pelo comercial e podem variar conforme o volume e o cadastro aprovado.</p>
+  <h3>Informações de saúde</h3>
+  <p>As descrições dos produtos são informativas e não substituem a orientação de médico ou nutricionista, principalmente no uso de suplementos e fitoterápicos.</p>
+  <h3>Mudanças nesta página</h3>
+  <p>Podemos atualizar esta página quando o site ou a lei mudarem. A data no topo mostra a versão em vigor.</p>
+
+  <p class="rodape">Dúvidas? <a href="https://wa.me/5549999346333" target="_blank" rel="noopener">Chame no WhatsApp</a> · <a href="index.html">Voltar para a loja</a></p>
+</main>
+</body>
+</html>

@@ -1,0 +1,161 @@
+/* ==========================================================================
+   LOJA — Melhorias de 24/11/2026 (noite)
+   Vistos recentemente · busca corrigida ("Você quis dizer…") · pedido rápido de atacado ·
+   avisos de privacidade (checkout e cadastro)
+   ========================================================================== */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Vistos recentemente (altura fixa: não empurra a página ao atualizar) ---------- */
+.vistos { margin: -12px 0 28px; }
+.vistos[hidden] { display: none; }
+.vistos__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.vistos__limpar { font-size: 13px; font-weight: 700; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.vistos__limpar:hover { color: var(--terra); }
+.vistos__rail { display: grid; grid-auto-flow: column; grid-auto-columns: 128px; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 2px 2px 8px; scrollbar-width: thin; }
+.vistos__item { display: grid; grid-template-rows: auto 32px auto; gap: 5px; align-content: start; text-align: left; font-size: 12px; line-height: 1.3; color: var(--ink-2); scroll-snap-align: start; border-radius: 12px; transition: transform .3s var(--ease); }
+.vistos__item:hover { transform: translateY(-3px); }
+.vistos__item:focus-visible { outline: 2px solid var(--leaf); outline-offset: 3px; }
+.vistos__item img, .vistos__item .arte { position: static; width: 100%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; background: var(--cream); }
+.vistos__item span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vistos__item b { color: var(--forest); font-size: 13px; }
+.vistos__item b small { font-weight: 600; color: var(--muted); }
+
+/* ---------- Busca corrigida ---------- */
+.busca-corrigida { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 12px 16px; border-radius: 14px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; color: var(--ink-2); }
+.busca-corrigida[hidden] { display: none; }
+.busca-corrigida > svg { flex: none; font-size: 18px; color: var(--amber); }
+.busca-corrigida b { color: var(--forest); }
+.sr-quis { padding: 12px 12px 4px; font-size: 14px; color: var(--ink-2); }
+.sr-quis__btn { font-weight: 800; color: var(--leaf); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Pedido rápido de atacado ---------- */
+.b2b__rapido { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; margin-top: 28px; }
+.b2b__rapido small { max-width: 300px; color: rgba(243, 235, 220, .78); font-size: 13px; line-height: 1.45; }
+
+.pr { padding: clamp(22px, 3vw, 34px); }
+.pr__head { padding-right: 44px; }
+.pr__head h3 { font-family: var(--f-display); font-size: clamp(26px, 3vw, 34px); color: var(--forest); margin: 8px 0 6px; }
+.pr__head p:not(.eyebrow) { color: var(--ink-2); margin: 0 0 18px; font-size: 14.5px; max-width: 680px; }
+.pr__filtros { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 0 12px; }
+.pr__lista { border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); background: var(--card); max-height: min(46vh, 440px); overflow: auto; overscroll-behavior: contain; }
+.pr__linha { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); transition: background .2s; }
+.pr__linha:last-child { border-bottom: 0; }
+.pr__linha.is-on { background: rgba(96, 165, 250, .1); }
+.pr__nome { min-width: 0; display: grid; gap: 2px; }
+.pr__nome b { font-size: 14px; color: var(--ink); line-height: 1.3; overflow-wrap: anywhere; }
+.pr__nome small { font-size: 12.5px; color: var(--muted); }
+.pr__qtd { display: inline-flex; align-items: center; gap: 6px; }
+.pr__qtd input { width: 78px; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--line-2); background: var(--paper); font-size: 16px; text-align: right; font-variant-numeric: tabular-nums; }
+.pr__qtd input:focus { outline: none; border-color: var(--leaf); box-shadow: 0 0 0 4px rgba(96, 165, 250, .16); }
+.pr__linha.is-on .pr__qtd input { border-color: var(--leaf); font-weight: 800; color: var(--forest); }
+.pr__qtd em { font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--muted); width: 18px; }
+.pr__vazio { padding: 28px 16px; text-align: center; color: var(--muted); margin: 0; }
+.pr__mais { font-size: 12.5px; color: var(--muted); margin: 8px 2px 0; }
+.pr__mais:empty { display: none; }
+.pr__fim { margin-top: 18px; }
+.pr__resumo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; font-size: 15px; color: var(--ink-2); }
+.pr__resumo b { color: var(--forest); }
+.pr__acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+.pr__acoes .btn[disabled] { opacity: .45; pointer-events: none; }
+.pr__nota { display: block; margin-top: 12px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* ---------- "Imagem ilustrativa" sob a foto do produto (espiada rápida) ---------- */
+.qv__ilustr { position: absolute; z-index: 3; top: calc(100% + 14px); left: 4px; font-family: var(--f-display); font-style: italic; font-weight: 500;
+  font-size: 15px; letter-spacing: .01em; color: var(--leaf); white-space: nowrap; pointer-events: none; }
+@media (max-width: 640px) { .qv__ilustr { top: calc(100% + 6px); font-size: 13px; } }
+
+/* ---------- Plantas na seção "Explore por categoria" (assets/js/app.js → plantasCategorias) ---------- */
+#categorias { overflow: hidden; }
+#categorias > .container { position: relative; z-index: 1; }
+.plantas { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.plantas svg, .pl__guirlanda svg { position: absolute; overflow: visible; }
+.pl__haste { fill: none; stroke: #2563EB; stroke-width: 2.3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.7s cubic-bezier(.45, 0, .2, 1) var(--d, 0s); }
+.pl__nervura { fill: none; stroke: rgba(255, 255, 255, .38); stroke-width: .6; stroke-linecap: round; }
+.pl__f { transform-box: fill-box; transform-origin: 0% 50%; transform: scale(0) rotate(-35deg); transition: transform .9s var(--ease-spring) var(--d, 0s); }
+.is-in .pl__haste { stroke-dashoffset: 0; }
+.is-in .pl__f { transform: none; }
+/* Movimento contínuo só no desenho INTEIRO (galho, raminho, guirlanda, folha solta): vira uma camada da placa de vídeo
+   (will-change) e só é movida, sem redesenhar folha por folha a cada quadro — leve até em celular simples. */
+.pl__lado, .pl__canto, .pl__guirlanda svg, .pl__solta { will-change: transform; }
+/* galhos laterais: só nas telas largas, no espaço livre ao lado do conteúdo */
+.pl__lado { display: none; height: 100%; width: min(500px, calc((100vw - 1320px) / 2 - 16px)); filter: drop-shadow(0 8px 10px rgba(17, 24, 39, .14)); }
+.pl__lado--e { left: 0; bottom: 0; transform-origin: 0% 100%; animation: plBalanca 9s ease-in-out infinite; }
+.pl__lado--d { right: 0; top: 0; transform-origin: 100% 0%; animation: plBalanca 10s ease-in-out -4s infinite; }
+/* raminhos pendurados sob a faixa verde, no espaço de cima */
+.pl__canto { --h: clamp(48px, 6.4vw, 98px); top: 0; height: var(--h); width: calc(var(--h) * 2.4); filter: drop-shadow(0 6px 8px rgba(17, 24, 39, .14)); }
+.pl__canto--e { left: max(8px, calc(50% - 650px)); transform-origin: 0% 0%; animation: plBalanca 8s ease-in-out -2s infinite; }
+.pl__canto--d { right: max(8px, calc(50% - 650px)); transform-origin: 100% 0%; animation: plBalanca 8.5s ease-in-out -6s infinite; }
+/* folhas soltas e sementes que flutuam */
+.pl__solta { height: auto; opacity: 0; transform: translateY(16px) rotate(var(--r)); transition: opacity .9s ease var(--d, 0s), transform 1.4s var(--ease) var(--d, 0s); filter: drop-shadow(0 6px 6px rgba(17, 24, 39, .18)); }
+.is-in .pl__solta { opacity: 1; transform: rotate(var(--r)); animation: plFlutua var(--t, 9s) ease-in-out var(--d, 0s) infinite; }
+.pl__semente { filter: drop-shadow(0 8px 10px rgba(17, 24, 39, .22)); }
+.pl__solta--lado { display: none; }
+/* guirlanda entre "Explore por categoria" e as setas */
+.pl__guirlanda { position: relative; flex: 1 1 160px; max-width: 560px; height: 72px; align-self: center; margin: 0 clamp(8px, 3vw, 48px); pointer-events: none; }
+.pl__guirlanda svg { inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 6px 8px rgba(17, 24, 39, .14)); transform-origin: 50% 50%; animation: plRespira 7s ease-in-out infinite; }
+.pl__baga { transform-box: fill-box; transform-origin: 50% 50%; transform: scale(0); transition: transform .6s var(--ease-spring) var(--d, 0s); }
+.is-in .pl__baga { transform: none; }
+@keyframes plBalanca { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2.4deg); } }
+@keyframes plRespira { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-4px) rotate(-1.4deg); } }
+/* folha solta: "translate"/"rotate" separados, somam com o transform da entrada */
+@keyframes plFlutua { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: 6px -12px; rotate: 14deg; } }
+/* fora da tela: animações pausadas (economia de bateria) */
+.plantas:not(.is-on), .plantas:not(.is-on) *, .pl__guirlanda:not(.is-on) * { animation-play-state: paused; }
+@media (min-width: 1480px) { .pl__lado, .pl__solta--lado { display: block; } }
+@media (max-width: 640px) {
+  .plantas .pl__solta:not(.pl__solta--cel) { display: none; }
+  .pl__canto { --h: 44px; }
+  /* celular: setas na 2ª linha, guirlanda ao lado delas (as setas continuam à esquerda) */
+  #categorias .rail-ctrl { order: 1; }
+  #categorias .pl__guirlanda { display: block; order: 2; flex: 1 1 140px; height: 50px; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plantas, .plantas *, .pl__guirlanda * { animation: none !important; transition: none !important; }
+  .pl__haste { stroke-dashoffset: 0; }
+  .pl__f, .pl__baga { transform: none; }
+  .pl__solta { opacity: 1; transform: rotate(var(--r)); }
+}
+
+/* ---------- Avisos de privacidade ---------- */
+.ck__priv { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--muted); margin: 4px 0 14px; line-height: 1.45; }
+.ck__priv > svg { flex: none; margin-top: 2px; color: var(--leaf); }
+.pr__nota a, .ck__priv a, .conta__check a { color: var(--leaf); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .vistos { margin-top: -6px; }
+  .vistos__rail { grid-auto-columns: 112px; }
+  .pr__filtros { grid-template-columns: 1fr; }
+  .pr__lista { max-height: 42vh; }
+  .pr__linha { padding: 10px 12px; }
+  .pr__acoes .btn { flex: 1 1 100%; justify-content: center; }
+}
+
+/* ---------- Cupom de desconto no checkout (assets/js/cupons.js) ---------- */
+.ck__cupom { margin: 14px 0 4px; border: 1.5px dashed var(--line-2); border-radius: 14px; padding: 10px 14px; }
+.ck__cupom > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ink-2); list-style: none; }
+.ck__cupom > summary::-webkit-details-marker { display: none; }
+.ck__cupom > summary svg, .ck__cupom.is-ok > svg { color: var(--leaf); flex: none; }
+.ck__cupomf { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; }
+.ck__cupomf .field { margin-bottom: 0; }
+.ck__cupomf .field input { text-transform: uppercase; }
+.ck__cupomf .btn { min-height: 54px; flex: none; }
+.ck__cupomerro { margin: 8px 0 0; font-size: 13px; color: #b42318; }
+.ck__cupom.is-ok { display: flex; align-items: center; gap: 10px; border-style: solid; border-color: rgba(37, 99, 235, .35); background: rgba(96, 165, 250, .08); font-size: 14px; }
+.ck__cupom.is-ok > span { flex: 1; display: grid; gap: 2px; }
+.ck__cupom.is-ok small { color: var(--muted); }
+.ck__cupom.is-ok em { font-style: normal; color: var(--leaf); font-weight: 600; font-size: 13px; }
+
+/* ---------- Granel: outra quantidade em gramas (mínimo 100 g) ---------- */
+.weights__outra { display: block; margin: 6px 0 0 auto; font-size: 12px; font-weight: 700; color: var(--leaf); text-decoration: underline; text-underline-offset: 3px; padding: 2px 0; }
+.weights__outra:hover { color: var(--forest); }
+.weights button[data-wpersonal] { letter-spacing: -.01em; }
+.qv__outra { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px; margin: 12px 0 2px; }
+.qv__outra label { font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+.qv__outrac { display: flex; align-items: center; gap: 8px; max-width: 220px; border: 1.5px solid var(--line-2); border-radius: 12px; background: var(--card); padding: 0 12px; transition: border-color .2s, box-shadow .2s; }
+.qv__outrac:focus-within { border-color: var(--leaf); box-shadow: 0 0 0 4px rgba(96, 165, 250, .16); }
+.qv__outrac input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 0; font-size: 15px; font-weight: 700; outline: none; }
+.qv__outrac em { font-style: normal; font-size: 13px; color: var(--muted); }
+.qv__outra small { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+.qv__outra small.is-erro { color: #b42318; font-weight: 600; }
+#qv-add:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 640px) { .weights__outra { font-size: 11px; margin-top: 4px; } .qv__outra { grid-template-columns: 1fr; } .qv__outra small { grid-column: 1; } }

@@ -1,0 +1,85 @@
+<!doctype html><meta charset="utf-8"><title>Teste fotos admin</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1366px;height:860px;border:0;display:block}</style>
+<pre id="out">RODANDO</pre><iframe id="adm"></iframe>
+<script>
+// Testa a seção "Fotos" do admin de ponta a ponta (servidor local). Usa um produto SEM foto e restaura tudo no fim.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 30000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(100); } return null; };
+  const existe = async (u) => (await fetch(u + (u.includes('?') ? '&' : '?') + 'x=' + Date.now(), { cache: 'no-store' })).ok;
+  const texto = async (u) => (await fetch(u + '?x=' + Date.now(), { cache: 'no-store' })).text();
+  let skuSem = null, skuBanco = null;
+  try {
+    sessionStorage.clear();
+    const f = document.getElementById('adm');
+    await new Promise((r) => { f.onload = r; f.src = '/admin/'; });
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => erros.push(e.message));
+    W.confirm = () => true;
+    await ate(() => D.getElementById('f-login'));
+    D.getElementById('f-login').elements.pin.value = W.LOJA_CONFIG.contas.painelPin;
+    D.getElementById('f-login').requestSubmit();
+    await ate(() => D.querySelector('.kpis'));
+    W.location.hash = '#fotos';
+    await ate(() => D.querySelector('.fgrid'));
+    log(!!D.querySelector('.fgrid') && D.getElementById('titulo').textContent.includes('fotos'), 'seção Fotos abre com a grade de produtos');
+    const C = W.LojaCatalog, REAIS = W.LOJA_FOTOS_REAIS, BANCO = W.LOJA_FOTOS;
+    skuSem = C.produtos.find((p) => !REAIS[p.codigo_sku] && !(BANCO[p.codigo_sku] && BANCO[p.codigo_sku].url)).codigo_sku;
+    skuBanco = C.produtos.find((p) => !REAIS[p.codigo_sku] && BANCO[p.codigo_sku] && BANCO[p.codigo_sku].url).codigo_sku;
+    log(D.querySelectorAll('.fcard').length === 48, 'mostra 48 produtos por vez');
+    // filtro sem foto + busca por código
+    D.querySelector('[data-fotos-seg] [data-v="sem"]').click(); await espera(150);
+    log([...D.querySelectorAll('.fcard .pill')].every((p) => /Sem foto|oculta/.test(p.textContent)), 'filtro "Sem foto" funciona');
+    const busca = D.querySelector('[data-ff="busca"]'); busca.value = skuSem; busca.dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.querySelectorAll('.fcard').length >= 1 && D.querySelector(`.fcard[data-foto="${skuSem}"]`));
+    D.querySelector(`.fcard[data-foto="${skuSem}"]`).click();
+    await ate(() => D.getElementById('foto-ficha').classList.contains('on') && D.querySelector('#foto-painel [data-arquivo]'));
+    log(!!D.querySelector('#foto-painel [data-arquivo]'), 'painel do produto abre com área de envio');
+
+    // ---- enviar foto (PNG 1200x800 gerado aqui)
+    const gerar = (cor, txt) => new Promise((r) => { const c = document.createElement('canvas'); c.width = 1200; c.height = 800; const g = c.getContext('2d'); g.fillStyle = cor; g.fillRect(0, 0, 1200, 800); g.fillStyle = '#fff'; g.font = 'bold 90px Arial'; g.fillText(txt, 120, 430); c.toBlob((b) => r(new File([b], 'teste.png', { type: 'image/png' })), 'image/png'); });
+    const enviarArquivo = (file) => { const inp = D.querySelector('#foto-painel [data-arquivo]'); const dt = new W.DataTransfer(); dt.items.add(new W.File([file], file.name, { type: file.type })); inp.files = dt.files; inp.dispatchEvent(new W.Event('change', { bubbles: true })); };
+    enviarArquivo(await gerar('#3F7D34', 'TESTE ' + skuSem));
+    await ate(() => REAIS[skuSem] && D.querySelector('#foto-painel .pill')?.textContent === 'Foto real', 40000);
+    log(REAIS[skuSem] === `assets/produtos/${skuSem}.jpg`, 'enviar: painel mostra "Foto real"');
+    log(await existe(`/fotos/${skuSem}.jpg`), 'enviar: original salvo em fotos/' + skuSem + '.jpg');
+    log(await existe(`/assets/produtos/${skuSem}.jpg`), 'enviar: versão do site gerada em assets/produtos/');
+    log((await texto('/data/fotos-reais.js')).includes(`"${skuSem}":`), 'enviar: data/fotos-reais.js atualizado (site mostra a foto)');
+
+    // ---- trocar
+    enviarArquivo(await gerar('#A5442A', 'TROCA ' + skuSem));
+    await ate(() => [...D.querySelectorAll('#toasts .toast')].some((t) => t.textContent.includes('trocada')), 40000);
+    log([...D.querySelectorAll('#toasts .toast')].some((t) => t.textContent.includes('trocada')), 'trocar: foto substituída (anterior vai para fotos/_removidas)');
+
+    // ---- remover
+    D.querySelector('#foto-painel [data-acao-foto="remover"]').click();
+    await ate(() => !REAIS[skuSem] && D.querySelector('#foto-painel .pill')?.textContent.includes('Sem foto'), 40000);
+    log(!(await existe(`/fotos/${skuSem}.jpg`)) && !(await existe(`/assets/produtos/${skuSem}.jpg`)), 'remover: foto sai de fotos/ e de assets/produtos/');
+    log(!(await texto('/data/fotos-reais.js')).includes(`"${skuSem}":`), 'remover: site volta para a arte de embalagem');
+
+    // ---- foto do banco: ocultar e mostrar
+    W.location.hash = '#fotos/' + skuBanco;
+    await ate(() => D.querySelector('#foto-painel [data-acao-foto="ocultar"]'));
+    D.querySelector('#foto-painel [data-acao-foto="ocultar"]').click();
+    await ate(() => D.querySelector('#foto-painel [data-acao-foto="mostrar"]'), 20000);
+    log((await texto('/data/fotos-ocultas.js')).includes(`"${skuBanco}"`), 'ocultar foto do banco: gravado em data/fotos-ocultas.js');
+    D.querySelector('#foto-painel [data-acao-foto="mostrar"]').click();
+    await ate(() => D.querySelector('#foto-painel [data-acao-foto="ocultar"]'), 20000);
+    log(!(await texto('/data/fotos-ocultas.js')).includes(`"${skuBanco}"`), 'voltar a mostrar foto do banco');
+
+    // ---- segurança: formato inválido e sem PIN
+    let r = await fetch(`/_fotos/enviar?codigo=${skuSem}`, { method: 'POST', headers: { 'X-Loja-Pin': W.LOJA_CONFIG.contas.painelPin }, body: new Blob(['isto não é uma imagem'.repeat(20)]) });
+    log(r.status === 415, 'servidor recusa arquivo que não é imagem (' + r.status + ')');
+    r = await fetch(`/_fotos/enviar?codigo=${skuSem}`, { method: 'POST', body: new Blob(['x'.repeat(200)]) });
+    log(r.status === 401, 'servidor recusa envio sem PIN (' + r.status + ')');
+    r = await fetch(`/_fotos/remover?codigo=../../etc`, { method: 'POST', headers: { 'X-Loja-Pin': W.LOJA_CONFIG.contas.painelPin } });
+    log(r.status === 400, 'servidor recusa código inválido (' + r.status + ')');
+    log(erros.length === 0, 'sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  const t = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\nSKU_TESTE=${skuSem}\n` + out.join('\n');
+  document.getElementById('out').textContent = t;
+  fetch('/_save-tmp', { method: 'POST', body: t });
+})();
+</script>

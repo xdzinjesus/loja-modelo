@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Teste vitrine</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1366px;height:768px;border:0;display:block}</style>
+<pre id="out">RODANDO</pre><iframe id="f"></iframe>
+<script>
+// 1) Filtro lateral não pode jogar a página para o rodapé  2) Cartões de avaliação nivelados após a animação
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const f = document.getElementById('f');
+  try {
+    // ---------- 1) filtro (sem animações) ----------
+    await new Promise((r) => { f.onload = r; f.src = '/?noanim'; });
+    let W = f.contentWindow, D = f.contentDocument;
+    await espera(800);
+    for (let i = 0; i < 5; i++) { D.getElementById('more-btn').click(); await espera(60); }
+    const cards = D.querySelectorAll('#grid .pcard').length;
+    const ultimo = D.querySelector('#grid .pcard:last-child');
+    W.scrollTo({ top: ultimo.getBoundingClientRect().top + W.scrollY - 300, behavior: 'instant' }); await espera(300);
+    const antes = W.scrollY;
+    D.querySelector('#f-categorias [data-fcat="graos"]').click(); await espera(400);
+    const vit = D.getElementById('vitrine').getBoundingClientRect().top;
+    const fimPagina = D.documentElement.scrollHeight - W.innerHeight;
+    log(cards >= 60, `vitrine carregou ${cards} produtos antes do clique`);
+    log(Math.abs(W.scrollY - fimPagina) > 200, `clique em "Grãos" NÃO foi para o rodapé (scroll ${Math.round(antes)} → ${Math.round(W.scrollY)}, fim da página ${Math.round(fimPagina)})`);
+    log(vit > -50 && vit < 250, `página parou no início da vitrine (topo da vitrine a ${Math.round(vit)} px)`);
+    log([12, 16].includes(D.querySelectorAll('#grid .pcard').length), `mostra a primeira página dos produtos de Grãos (${D.querySelectorAll('#grid .pcard').length}: 16 no PC, 12 no celular)`);
+    // segundo clique também
+    D.querySelector('#f-categorias [data-fcat="temperos"]').click(); await espera(400);
+    log(Math.abs(W.scrollY - (D.documentElement.scrollHeight - W.innerHeight)) > 200, 'segundo clique (Temperos) também fica na vitrine');
+
+    // ---------- 2) avaliações (com animações) ----------
+    await new Promise((r) => { f.onload = r; f.src = '/'; });
+    W = f.contentWindow; D = f.contentDocument;
+    await espera(4500); // abertura
+    const rev = D.getElementById('reviews');
+    W.scrollTo({ top: rev.getBoundingClientRect().top + W.scrollY - 200, behavior: 'instant' });
+    await espera(2600);
+    const rs = [...rev.querySelectorAll('.review')];
+    const tr = rs.map((r) => W.getComputedStyle(r).transform);
+    log(tr.every((t) => t === 'none'), `sem deslocamento sobrando nos cartões (${tr.join(' | ')})`);
+    if (rs.length >= 3) {
+      const a = rs[1].getBoundingClientRect(), b = rs[2].getBoundingClientRect();
+      log(Math.abs(a.top - b.top) < 1 && Math.abs(a.bottom - b.bottom) < 1, `cartões 2 e 3 nivelados (topo ${Math.round(a.top)} × ${Math.round(b.top)}, base ${Math.round(a.bottom)} × ${Math.round(b.bottom)})`);
+    }
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message); }
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

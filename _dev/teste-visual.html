@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><title>seed</title>
+<script>
+// Semeia dados de exemplo (sem criptografia) e abre o site numa tela da conta — só para prints.
+const q = new URLSearchParams(location.search);
+Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+const agora = Date.now(), iso = (d) => new Date(agora - d * 864e5).toISOString();
+const atac = q.get('atac') || 'pendente';
+const u = { id: 'u1', nome: 'Maria Souza', email: 'maria@teste.com', fone: '49999999999', senha: { salt: 'x', hash: 'y', iter: 1 }, criadoEm: iso(40),
+  atacado: atac === 'nenhum' ? { status: 'nenhum' } : { status: atac, cnpj: '11222333000181', razaoSocial: 'Empório Teste Ltda', cidade: 'Concórdia/SC', ramo: 'Mercado / Empório', solicitadoEm: iso(2), respondidoEm: iso(1), motivo: atac === 'recusado' ? 'CNPJ inativo na Receita.' : undefined } };
+const it = (id, nome, g, qty, unit) => ({ id, sku: id, nome, g, conteudo: g ? null : '60 cápsulas', qty, unitario: unit, total: unit * qty });
+const ped = [
+  { id: 'KD482913', usuarioId: 'u1', criadoEm: iso(0.1), status: 'separando', atacado: false, itens: [it('95', 'Oliveira em Folhas', 250, 2, 22.5), it('3392', 'Ora Pro Nobis 120 caps 500 mg 4 Elementos', null, 1, 65)], subtotal: 110, frete: 0, descontoPix: 5.5, descontoAtacado: 0, total: 104.5, entrega: { tipo: 'retirada', cep: null }, pagamento: 'pix', cliente: { nome: 'Maria Souza', fone: '(49) 99999-9999' },
+    historico: [{ status: 'recebido', em: iso(0.1) }, { status: 'confirmado', em: iso(0.08) }, { status: 'separando', em: iso(0.05), nota: 'Separando sua encomenda — fica pronta hoje às 16h.' }] },
+  { id: 'KD377120', usuarioId: 'u1', criadoEm: iso(9), status: 'entregue', atacado: false, itens: [it('239', 'Orégano Peruano Flocos', 500, 1, 22)], subtotal: 22, frete: 24.9, descontoPix: 0, descontoAtacado: 0, total: 46.9, entrega: { tipo: 'entrega', cep: '89700158' }, pagamento: 'cartao', cliente: { nome: 'Maria Souza', fone: '(49) 99999-9999' }, historico: [{ status: 'recebido', em: iso(9) }, { status: 'entregue', em: iso(7) }] },
+  { id: 'KD201554', usuarioId: 'u1', criadoEm: iso(21), status: 'cancelado', atacado: false, itens: [it('3011', 'Orange Pepper', 100, 1, 8.9)], subtotal: 8.9, frete: 0, descontoPix: 0, descontoAtacado: 0, total: 8.9, entrega: { tipo: 'retirada', cep: null }, pagamento: 'dinheiro', cliente: { nome: 'Maria Souza', fone: '(49) 99999-9999' }, historico: [{ status: 'recebido', em: iso(21) }, { status: 'cancelado', em: iso(21) }] }
+];
+if (q.get('tela') !== 'entrar' && q.get('tela') !== 'cadastro') {
+  localStorage.setItem('loja:db:usuarios', JSON.stringify([u]));
+  localStorage.setItem('loja:db:pedidos', JSON.stringify(q.get('vazio') ? [] : ped));
+  localStorage.setItem('loja:sessao', JSON.stringify({ uid: 'u1', exp: new Date(agora + 864e5).toISOString() }));
+}
+if (q.get('painel')) { sessionStorage.setItem('loja:admin', '1'); location.replace('/tools/painel-loja.html'); }
+else location.replace('/?noanim&conta=' + (q.get('tela') || 'pedidos'));
+</script>

@@ -1,0 +1,87 @@
+<!doctype html><meta charset="utf-8"><title>Teste gramagem personalizada</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1366px;height:860px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// Granel: "Outra quantidade" em gramas (mínimo 100 g) no cartão e na espiada rápida; carrinho e WhatsApp com o peso escolhido.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(60); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  const limpar = () => Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+  try {
+    limpar();
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim'); await espera(1200);
+    const W = f.contentWindow, D = f.contentDocument, $ = (s) => D.querySelector(s), C = W.LojaCatalog;
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    const card = [...D.querySelectorAll('#grid .pcard')].find((c) => C.porId.get(c.dataset.id)._granel);
+    const p = C.porId.get(card.dataset.id);
+    log(!!card.querySelector('[data-outra]'), `cartão de granel tem "Outra quantidade" (${p.nome})`);
+    const naoGranel = [...D.querySelectorAll('#grid .pcard')].find((c) => !C.porId.get(c.dataset.id)._granel);
+    if (naoGranel) log(!naoGranel.querySelector('[data-outra]'), 'produto por unidade não tem "Outra quantidade"');
+    card.querySelector('[data-outra]').click();
+    await ate(() => D.activeElement && D.activeElement.id === 'qv-gramas', 2000);
+    log($('#modal-qv').classList.contains('is-open') && D.activeElement.id === 'qv-gramas', 'o link abre a espiada com o campo de gramas pronto para digitar');
+    const campo = $('#qv-gramas'), msg = () => $('#qv-gramas-msg').textContent, add = () => $('#qv-add');
+    const digita = (v) => { campo.value = v; campo.dispatchEvent(new W.Event('input', { bubbles: true })); };
+    log(/Mínimo de 100 g/.test(msg()), 'avisa "Mínimo de 100 g"');
+    digita('50');
+    log(/mínimo é 100 g/.test(msg()) && $('#qv-gramas-msg').classList.contains('is-erro') && add().disabled, '50 g: mostra erro e não deixa adicionar');
+    digita('350');
+    const chip = () => $('.qv .weights [data-wpersonal]');
+    log(!add().disabled && chip() && chip().textContent === '350g' && chip().classList.contains('is-on') && $('#qv-price').textContent === C.brl(C.precoDe(p, 350)),
+      `350 g: vira botão "350g" e o preço muda para ${C.brl(C.precoDe(p, 350))}`);
+    log(msg().includes('350g') && msg().includes(C.brl(C.precoDe(p, 350))), `mensagem mostra peso e preço: "${msg()}"`);
+    digita('1500');
+    log(chip()?.textContent === '1,5kg', `1500 g aparece como "${chip()?.textContent}"`);
+    digita('60000');
+    log(/máximo/.test(msg()) && add().disabled, 'acima do máximo (50 kg): erro e não deixa adicionar');
+    digita('3a5x0'); log(campo.value === '350' && !add().disabled, 'só aceita números (letras são ignoradas)');
+    digita('');
+    log(!chip() && $('.qv .weights .is-on') && /Mínimo/.test(msg()) && !add().disabled, 'campo vazio volta aos pesos prontos');
+    digita('350');
+    const b250 = [...D.querySelectorAll('.qv .weights [data-w]')].find((b) => b.dataset.w === '250');
+    b250.click(); await espera(50);
+    log(campo.value === '' && b250.classList.contains('is-on'), 'escolher um peso pronto limpa o campo');
+    digita('350');
+    $('[data-qq="1"]').click(); await espera(50);
+    log($('#qv-price').textContent === C.brl(C.precoDe(p, 350) * 2), 'quantidade 2 × 350 g');
+    add().click(); await espera(400);
+    const cart = JSON.parse(W.localStorage.getItem('loja:cart') || '[]');
+    const linha = cart.find((l) => l.id === p.id && l.g === 350);
+    log(linha && linha.qty === 2, 'carrinho recebe 2 × 350 g');
+    log(card.dataset.g === '350' && card.querySelector('.weights [data-wpersonal].is-on')?.textContent === '350g' && card.querySelector('[data-price]').textContent === C.brl(C.precoDe(p, 350)),
+      'o cartão na vitrine passa a mostrar "350g" escolhido e o preço');
+    W.LojaApp.openPanel('drawer-cart'); await espera(300);
+    log($('#cart-items').textContent.includes('350g') && $('#cart-subtotal').textContent === C.brl(C.precoDe(p, 350) * 2), 'carrinho mostra 350g e o subtotal certo');
+    let wa = ''; W.open = (u) => { wa = decodeURIComponent(String(u).split('text=')[1] || ''); return null; };
+    $('#cart-wa').click(); await espera(100);
+    log(wa.includes(`2x ${p.nome} (350g)`), 'mensagem do WhatsApp traz "(350g)"');
+    W.LojaApp.closeAll(true);
+    // reabrir a espiada pelo cartão: já vem com 350 no campo
+    card.querySelector('[data-qv]').click(); await espera(300);
+    log($('#qv-gramas').value === '350' && $('.qv .weights [data-wpersonal]')?.classList.contains('is-on'), 'reabrir o produto mantém os 350 g escolhidos');
+    W.LojaApp.closeAll(true);
+    log(erros.length === 0, 'sem erros de JavaScript (PC)' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+
+    // ---------- celular ----------
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim'); await espera(1200);
+    const Wc = fc.contentWindow, Dc = fc.contentDocument;
+    const cc = [...Dc.querySelectorAll('#grid .pcard')].find((c) => Wc.LojaCatalog.porId.get(c.dataset.id)._granel);
+    const lk = cc.querySelector('[data-outra]').getBoundingClientRect(), cr = cc.getBoundingClientRect();
+    log(Dc.documentElement.scrollWidth <= Wc.innerWidth && lk.right <= cr.right + 1 && lk.height > 0, `celular: link cabe no cartão (${Math.round(lk.width)}×${Math.round(lk.height)} px) e a página não rola para o lado`);
+    cc.querySelector('[data-outra]').click(); await espera(500);
+    const cp = Dc.getElementById('qv-gramas').getBoundingClientRect();
+    log(cp.width >= 80 && cp.right <= Wc.innerWidth, `celular: campo de gramas visível (${Math.round(cp.width)} px)`);
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  limpar();
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

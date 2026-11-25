@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>largura</title>
+<pre id="out">...</pre>
+<iframe id="f" style="width:390px;height:844px;border:0"></iframe>
+<script>
+// Lista os elementos que passam da largura da tela (390 px) e não estão dentro de um contêiner com rolagem/corte.
+const f = document.getElementById('f');
+f.src = '/?noanim';
+f.onload = () => setTimeout(() => {
+  const D = f.contentDocument, W = f.contentWindow;
+  const cortado = (el) => { for (let p = el.parentElement; p && p !== D.body; p = p.parentElement) { const o = W.getComputedStyle(p).overflowX; if (o !== 'visible') return true; } return false; };
+  const lin = [`scrollWidth=${D.documentElement.scrollWidth} body=${D.body.scrollWidth}`];
+  [...D.body.querySelectorAll('*')].forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.width && (r.right > W.innerWidth + 1 || r.left < -1) && !cortado(el) && W.getComputedStyle(el).position !== 'fixed') {
+      lin.push(`${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${[...el.classList].join('.')} left=${Math.round(r.left)} right=${Math.round(r.right)} w=${Math.round(r.width)}`);
+    }
+  });
+  const t = lin.slice(0, 40).join('\n'); document.getElementById('out').textContent = t;
+  fetch('/_save-tmp', { method: 'POST', body: t });
+}, 2500);
+</script>

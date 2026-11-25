@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Teste links internos</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1366px;height:860px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// Links internos (#atacado etc.) chegam exatamente na seção, mesmo com a vitrine carregando produtos no caminho.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  // espera a rolagem parar
+  const parou = async (W) => { let y = -1; for (let i = 0; i < 60; i++) { await espera(100); if (W.scrollY === y) { await espera(500); if (W.scrollY === y) return; } y = W.scrollY; } };
+  const distancia = (W, D, id) => { const pad = parseFloat(W.getComputedStyle(D.documentElement).scrollPaddingTop) || 0; return Math.round(D.getElementById(id).getBoundingClientRect().top - pad); };
+  try {
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim');
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    await espera(2500);
+    const casos = [['.header a[href="#atacado"]', 'atacado', 'cabeçalho → Atacado'], ['.hero a[href="#atacado"]', 'atacado', 'botão do topo → Cotação Atacado'],
+      ['footer a[href="#avaliacoes"]', 'avaliacoes', 'rodapé → Avaliações'], ['footer a[href="#atacado"]', 'atacado', 'rodapé → Atacado & Revenda']];
+    for (const [sel, id, nome] of casos) {
+      W.scrollTo({ top: 0, behavior: 'instant' }); await espera(400);
+      const a = D.querySelector(sel); if (!a) { log(false, `${nome}: link não encontrado (${sel})`); continue; }
+      a.click(); await parou(W);
+      const d = distancia(W, D, id);
+      log(Math.abs(d) <= 8, `${nome}: para no início da seção (diferença ${d}px)`);
+    }
+    log(W.location.hash === '#atacado', 'endereço fica com #atacado');
+
+    // abrir o site já com #atacado
+    // "&direto" força recarregar: só trocar o #atacado não dispara o onload do iframe (o teste ficava parado aqui)
+    await carrega(f, '/?noanim&direto#atacado'); await espera(500); await parou(f.contentWindow);
+    log(Math.abs(distancia(f.contentWindow, f.contentDocument, 'atacado')) <= 8, `abrir com /#atacado vai direto (diferença ${distancia(f.contentWindow, f.contentDocument, 'atacado')}px)`);
+
+    // celular: menu lateral → Atacado & Revenda
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim'); const Wc = fc.contentWindow, Dc = fc.contentDocument; await espera(2500);
+    Dc.querySelector('[data-open="drawer-menu"]').click(); await espera(500);
+    Dc.querySelector('#drawer-menu a[href="#atacado"]').click(); await parou(Wc);
+    log(!Dc.getElementById('drawer-menu').classList.contains('is-open'), 'celular: menu fecha ao tocar no link');
+    log(Math.abs(distancia(Wc, Dc, 'atacado')) <= 8, `celular: menu → Atacado para na seção (diferença ${distancia(Wc, Dc, 'atacado')}px)`);
+    log(erros.length === 0, 'sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

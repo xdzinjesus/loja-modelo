@@ -1,0 +1,12 @@
+﻿# Backup do index.html original (550 MB) e ZIP — passam do limite de 100 MB do GitHub; ficam só no computador
+_backup/
+# Resultados/logs gerados pelos testes e pelo sincronizador
+_dev/resultado.json
+_dev/*.log
+*.tmp
+# Pasta temporaria do gerador de imagens pelo Codex
+_dev/codex-lote/
+# Horario em que o limite de imagens do Codex libera (gerado pelo gerador)
+_dev/codex-limite.txt
+# Conversa Claude <-> Codex: fica so na pasta PRINCIPAL (editada o tempo todo)
+docs/CONVERSA-CLAUDE-CODEX.md

@@ -1,0 +1,249 @@
+<!doctype html><meta charset="utf-8"><title>Teste novidades</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1366px;height:860px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// Novidades da noite de 24/11/2026: busca (sinônimos, plural, "você quis dizer"), filtro "só com foto",
+// ordenação "mais novos", vistos recentemente, pedido rápido de atacado, privacidade/termos, sitemap.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 10000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(80); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim');
+    let W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => erros.push(e.message));
+    await ate(() => D.querySelectorAll('#grid .pcard').length);
+    const recarrega = async () => {
+      await carrega(f, '/?noanim'); W = f.contentWindow; D = f.contentDocument;
+      W.addEventListener('error', (e) => erros.push(e.message));
+      await ate(() => D.querySelectorAll('#grid .pcard').length);
+    };
+    const C = W.LojaCatalog;
+    const N = (s) => C.norm(s);
+
+    // ---------- busca ----------
+    const para = C.produtos.filter((p) => /castanha do para/.test(N(p.nome).replace(/-/g, ' ')));
+    const brasil = C.buscar('castanha do brasil');
+    log(para.length > 0 && para.every((p) => brasil.includes(p)), `sinônimo: "castanha do brasil" acha as ${para.length} "castanha do pará" (${brasil.length} resultados)`);
+    const caju1 = C.buscar('castanha de caju'), caju2 = C.buscar('castanhas de caju');
+    log(caju1.length > 0 && caju1.every((p) => caju2.includes(p)), `plural: "castanhas de caju" acha os mesmos ${caju1.length} de "castanha de caju"`);
+    const whey = C.buscar('whey');
+    log(whey.length > 0 && whey.every((p) => p._busca.includes('whey')), `busca comum continua igual ("whey": ${whey.length})`);
+    log(C.corrigir('whey') === null, 'palavra que existe não é "corrigida"');
+    const corr = C.corrigir('colagem');
+    log(!!corr && N(corr.q) === 'colageno' && corr.total > 0, `"colagem" → "${corr && corr.q}" (${corr && corr.total} produtos)`);
+    const corr2 = C.corrigir('whye protien');
+    log(!!corr2 && /whey/.test(N(corr2.q)), `duas palavras com erro: "whye protien" → "${corr2 && corr2.q}"`);
+    log(C.corrigir('xqzwvk') === null && C.buscar('xqzwvk').length === 0, 'texto sem sentido: sem resultado e sem sugestão');
+    const sku = C.produtos.find((p) => p.codigo_sku === '4423');
+    log(!sku || C.buscar('4423')[0] === sku, 'busca pelo código continua trazendo o produto primeiro');
+    // vitrine corrigida
+    const inp = D.getElementById('search-input');
+    inp.value = 'colagem'; inp.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await espera(300);
+    const aviso = D.getElementById('busca-corrigida');
+    log(!aviso.hidden && aviso.textContent.includes('colagem') && D.querySelectorAll('#grid .pcard').length > 0 && D.getElementById('empty').hidden,
+      `vitrine: "colagem" mostra ${D.querySelectorAll('#grid .pcard').length}+ produtos de colágeno e o aviso`);
+    log(/col[aá]geno/i.test(D.getElementById('vitrine-title').textContent), 'título mostra a palavra corrigida: ' + D.getElementById('vitrine-title').textContent);
+    inp.value = 'xqzwvk'; inp.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await espera(300);
+    log(aviso.hidden && !D.getElementById('empty').hidden, 'sem correção possível: mostra "Nada encontrado" (sem aviso)');
+    inp.focus(); inp.value = 'colagem'; inp.dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.querySelector('#search-results .sr-quis'), 3000);
+    const quis = D.querySelector('#search-results .sr-quis');
+    log(!!quis && /col[aá]geno/i.test(quis.textContent) && D.querySelectorAll('#search-results .sr-item').length > 0, 'painel da busca: "Você quis dizer colágeno?" com produtos');
+    quis.querySelector('button').click(); await espera(300);
+    log(inp.value.toLowerCase().includes('col') && aviso.hidden && D.querySelectorAll('#grid .pcard').length > 0, 'clicar na sugestão busca a palavra certa');
+    D.querySelector('[data-unset="all"]').click(); await espera(200);
+
+    // ---------- só com foto + mais novos ----------
+    const totalTodos = +D.getElementById('f-total').textContent;
+    D.querySelector('[data-comfoto]').click(); await espera(200);
+    const comFoto = +D.getElementById('f-total').textContent;
+    const cards = [...D.querySelectorAll('#grid .pcard')];
+    log(comFoto > 0 && comFoto < totalTodos && cards.every((c) => c.querySelector('.pcard__media img.main')), `"Só com foto": ${comFoto} de ${totalTodos}, nenhum cartão com arte de embalagem`);
+    log(!!D.querySelector('[data-unset="comFoto"]') && D.querySelector('[data-comfoto]').getAttribute('aria-pressed') === 'true', 'chip "Só com foto" aparece nos filtros ativos');
+    D.querySelector('[data-unset="comFoto"]').click(); await espera(200);
+    log(+D.getElementById('f-total').textContent === totalTodos, 'remover o chip volta a mostrar todos');
+    const sort = D.getElementById('sort'); sort.value = 'novos'; sort.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(200);
+    const num = (s) => parseInt(String(s).replace(/\D.*$/, ''), 10) || 0;
+    const maior = Math.max(...C.produtos.map((p) => num(p.codigo_sku)));
+    const primeiros = [...D.querySelectorAll('#grid .pcard')].slice(0, 6).map((c) => num(c.dataset.id));
+    log(primeiros[0] === maior && primeiros.every((v, i) => !i || v <= primeiros[i - 1]), `"Mais novos": começa pelo maior código (${primeiros.slice(0, 3).join(', ')}…)`);
+    D.querySelector('[data-unset="all"]')?.click(); sort.value = 'destaque'; sort.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(200);
+
+    // ---------- vistos recentemente ----------
+    const vistos = D.getElementById('vistos');
+    log(vistos.hidden, 'sem produto aberto, a faixa "Você viu" fica escondida');
+    const [p1, p2] = C.produtos.filter((p) => p._img).slice(0, 2);
+    // topo da página: aparece na hora
+    W.scrollTo({ top: 0, behavior: 'instant' });
+    D.querySelector(`#grid .pcard[data-id="${p1.id}"] [data-qv]`) ? D.querySelector(`#grid .pcard[data-id="${p1.id}"] [data-qv]`).click() : W.LojaApp.closeAll(true);
+    await espera(200);
+    if (!D.getElementById('modal-qv').classList.contains('is-open')) { // p1 fora da 1ª página: abre pela busca
+      inp.value = p1.nome; inp.dispatchEvent(new W.Event('input', { bubbles: true })); await ate(() => D.querySelector(`#search-results [data-sid="${p1.id}"]`)); D.querySelector(`#search-results [data-sid="${p1.id}"]`).click(); await espera(200);
+    }
+    W.LojaApp.closeAll(true);
+    log(!vistos.hidden && vistos.querySelectorAll('[data-visto]').length === 1, 'abriu 1 produto → aparece em "Você viu"');
+    // rolado lá embaixo: abrir outro produto NÃO empurra a página
+    W.localStorage.setItem('loja:vistos', '[]');
+    await recarrega();
+    const yAlvo = D.getElementById('grid').getBoundingClientRect().top + W.scrollY + 600;
+    W.scrollTo({ top: yAlvo, behavior: 'instant' }); await espera(300);
+    // mede a grade (não o cartão: o cartão tem animação de entrada que mexe alguns px sozinha)
+    const pos = () => ['#vitrine', '.shop', '#grid'].map((s) => Math.round(D.querySelector(s).getBoundingClientRect().top + W.scrollY));
+    const y0 = W.scrollY, p0 = pos();
+    D.querySelector('#grid .pcard [data-qv]').click(); await espera(300); W.LojaApp.closeAll(true); await espera(200);
+    const p1b = pos();
+    log(Math.abs(W.scrollY - y0) < 2 && Math.abs(p1b[2] - p0[2]) < 2,
+      `rolado na vitrine: abrir produto não faz a página pular (y ${Math.round(y0)} → ${Math.round(W.scrollY)}; vitrine/loja/cartão ${p0.join('/')} → ${p1b.join('/')})`);
+    log(D.getElementById('vistos').hidden, '…e a faixa espera o cliente voltar para cima');
+    W.scrollTo({ top: 0, behavior: 'instant' }); await ate(() => !D.getElementById('vistos').hidden, 3000);
+    log(!D.getElementById('vistos').hidden, `voltou ao topo → a faixa aparece (y=${W.scrollY}, shop=${Math.round(D.querySelector('.shop').getBoundingClientRect().top)}, salvos=${W.localStorage.getItem('loja:vistos')})`);
+    if (D.getElementById('vistos').hidden) throw new Error('faixa não apareceu; o resto depende dela');
+    // mais um produto: o último aberto vem primeiro; sem repetir
+    const outro = C.produtos.find((p) => p.id !== D.querySelector('[data-visto]').dataset.visto);
+    W.LojaApp.closeAll(true);
+    D.querySelector('#grid .pcard [data-qv]').click(); await espera(150); W.LojaApp.closeAll(true);
+    log(D.querySelectorAll('[data-visto]').length === 1, 'abrir o mesmo produto de novo não repete');
+    const inp2 = D.getElementById('search-input'); inp2.focus();
+    inp2.value = outro.nome; inp2.dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.querySelector(`#search-results [data-sid="${CSS.escape(outro.id)}"]`)); D.querySelector(`#search-results [data-sid="${CSS.escape(outro.id)}"]`).click(); await espera(200); W.LojaApp.closeAll(true);
+    const ids = [...D.querySelectorAll('[data-visto]')].map((b) => b.dataset.visto);
+    log(ids.length === 2 && ids[0] === outro.id, 'o último produto aberto aparece primeiro');
+    const hVistos = D.getElementById('vistos').offsetHeight;
+    await recarrega();
+    log(D.querySelectorAll('[data-visto]').length === 2, 'continua lá depois de recarregar a página');
+    log(D.getElementById('vistos').offsetHeight === hVistos, `altura da faixa fixa (${hVistos}px com 1 ou 2 itens)`);
+    D.querySelector('[data-visto]').click(); await espera(200);
+    log(D.getElementById('modal-qv').classList.contains('is-open'), 'clicar em um item abre o produto');
+    const selo = D.querySelector('#qv-content .qv__quadro .qv__ilustr'), quadro = D.querySelector('#qv-content .qv__quadro');
+    log(!!selo && selo.textContent === 'Imagem ilustrativa' && !/IA|intelig/i.test(D.getElementById('qv-content').textContent.replace(/\s+/g, ' ').match(/Imagem ilustrativa[^]{0,40}/)[0].slice(18))
+      && selo.getBoundingClientRect().top >= quadro.getBoundingClientRect().bottom && W.getComputedStyle(selo).color === 'rgb(63, 125, 52)',
+      '"Imagem ilustrativa" em verde logo abaixo da foto');
+    W.LojaApp.closeAll(true);
+    D.getElementById('vistos-limpar').click(); await espera(100);
+    log(D.getElementById('vistos').hidden && W.localStorage.getItem('loja:vistos') === '[]', '"Limpar" esconde a faixa e apaga a lista');
+    W.localStorage.setItem('loja:vistos', JSON.stringify(['nao-existe-999', C.produtos[5].id]));
+    await recarrega();
+    log(D.querySelectorAll('[data-visto]').length === 1, 'produto que saiu do catálogo é ignorado');
+    // granel: "Você viu" mostra o preço do kg (não o da menor porção, ex. 50 g, com "/kg")
+    const gv = C.produtos.find((p) => p._granel && C.precoBase(p) !== p.preco);
+    W.localStorage.setItem('loja:vistos', JSON.stringify([gv.id]));
+    await recarrega();
+    const precoVisto = D.querySelector('[data-visto] b').textContent.replace(/\s/g, ' ');
+    log(precoVisto === `${C.brl(gv.preco)}/kg`.replace(/\s/g, ' '), `granel em "Você viu": ${precoVisto} = preço do kg (${C.brl(gv.preco)}/kg; menor porção ${C.brl(C.precoBase(gv))})`);
+
+    // ---------- pedido rápido de atacado ----------
+    let aberto = ''; W.open = (u) => { aberto = u; return null; };
+    D.querySelector('[data-open="modal-rapido"]').click(); await espera(300);
+    const M = D.getElementById('modal-rapido');
+    log(M.classList.contains('is-open') && M.querySelectorAll('[data-prid]').length === 60, `abre com a lista (60 linhas de ${C.produtos.length})`);
+    log(/Mostrando 60 de/.test(D.getElementById('pr-mais').textContent), 'avisa que há mais produtos e pede para buscar');
+    log(D.getElementById('pr-wa').disabled && D.getElementById('pr-copiar').disabled, 'sem itens: botões de envio desativados');
+    const granel = C.produtos.find((p) => p._granel && /caju/i.test(p.nome));
+    const un = C.produtos.find((p) => !p._granel && p.preco > 0);
+    const busca = D.getElementById('pr-busca');
+    const digita = async (q) => { busca.value = q; busca.dispatchEvent(new W.Event('input', { bubbles: true })); await espera(250); };
+    const qtd = async (p, v) => { const i = M.querySelector(`[data-prid="${CSS.escape(p.id)}"] [data-prq]`); i.focus(); i.value = v; i.dispatchEvent(new W.Event('input', { bubbles: true })); i.dispatchEvent(new W.FocusEvent('focusout', { bubbles: true })); return i; };
+    await digita(granel.codigo_sku);
+    log(!!M.querySelector(`[data-prid="${CSS.escape(granel.id)}"]`), 'busca pelo código acha o produto');
+    const i1 = await qtd(granel, '1,5');
+    log(i1.value === '1,5' && M.querySelector(`[data-prid="${CSS.escape(granel.id)}"]`).classList.contains('is-on') && D.getElementById('pr-n').textContent === '1', 'granel: "1,5" kg entra no pedido');
+    await digita(un.codigo_sku);
+    const i2 = await qtd(un, '2.7');
+    log(i2.value === '3', 'unidades: "2.7" vira 3 (só inteiros)');
+    const esperado = granel.preco * 1.5 + un.preco * 3;
+    log(D.getElementById('pr-total').textContent === C.brl(esperado), `total de referência ${D.getElementById('pr-total').textContent} (${C.brl(esperado)})`);
+    await qtd(un, '-4'); log(D.getElementById('pr-n').textContent === '1', 'número negativo tira o item');
+    // quantidades grandes: "1.000" é mil, e editar o campo de novo não muda o número (antes "1.000" virava 1)
+    const i3 = await qtd(un, '1.000');
+    const reedita = async (i) => { i.focus(); i.dispatchEvent(new W.Event('input', { bubbles: true })); i.dispatchEvent(new W.FocusEvent('focusout', { bubbles: true })); };
+    await reedita(i3);
+    log(i3.value === '1000' && D.getElementById('pr-total').textContent === C.brl(granel.preco * 1.5 + un.preco * 1000), `unidades: "1.000" = mil e continua mil ao editar (campo "${i3.value}")`);
+    await digita(granel.codigo_sku);
+    const i4 = await qtd(granel, '1.234,5'); await reedita(i4);
+    log(i4.value === '1234,5', `granel: "1.234,5" kg continua 1234,5 ao editar (campo "${i4.value}")`);
+    const i5 = await qtd(granel, '1.2,3');
+    log(i5.value === '' && !M.querySelector(`[data-prid="${CSS.escape(granel.id)}"]`).classList.contains('is-on'), 'granel: "1.2,3" (milhar errado) não vira 12,3 — campo é recusado');
+    await qtd(granel, '1,5');
+    await digita(un.codigo_sku);
+    await qtd(un, '3');
+    D.getElementById('pr-so').click(); await espera(150);
+    log(M.querySelectorAll('[data-prid]').length === 2, '"Ver escolhidos" mostra só os 2 itens');
+    D.getElementById('pr-nome').value = ''; D.getElementById('pr-cidade').value = '';
+    D.getElementById('pr-wa').click(); await espera(150);
+    log(!aberto && D.getElementById('pr-nome').parentElement.classList.contains('is-error'), 'sem nome/cidade: não envia e marca o campo');
+    D.getElementById('pr-nome').value = 'Teste & Cia "Revenda"'; D.getElementById('pr-cidade').value = 'Concórdia/SC';
+    D.getElementById('pr-wa').click(); await espera(150);
+    const msg = decodeURIComponent((aberto.split('text=')[1] || ''));
+    log(aberto.startsWith('https://wa.me/5549999346333') && msg.includes('1,5 kg — ' + granel.nome) && msg.includes(`3 un — ${un.nome} (cód. ${un.codigo_sku})`) && msg.includes('Teste & Cia "Revenda"') && msg.includes('Concórdia/SC'),
+      'WhatsApp abre com nome, cidade, itens, quantidades e códigos');
+    let copiado = ''; Object.defineProperty(W.navigator, 'clipboard', { value: { writeText: async (x) => { copiado = x; } }, configurable: true });
+    D.getElementById('pr-copiar').click(); await espera(150);
+    log(copiado.includes('1,5 kg') && !copiado.includes('*'), '"Copiar lista" copia o texto (sem asteriscos)');
+    await recarrega();
+    W.open = () => null;
+    D.querySelector('[data-open="modal-rapido"]').click(); await espera(300);
+    log(D.getElementById('pr-n').textContent === '2' && !D.getElementById('pr-nome').value, 'recarregou: itens continuam; nome não fica salvo (LGPD)');
+    W.confirm = () => true; D.getElementById('pr-limpar').click(); await espera(150);
+    log(D.getElementById('pr-n').textContent === '0' && W.localStorage.getItem('loja:pedido-rapido') === '{}', '"Limpar" esvazia o pedido');
+    // Enter pula para a próxima quantidade
+    const qs = D.querySelectorAll('#pr-lista [data-prq]'); qs[0].focus();
+    qs[0].dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    log(D.activeElement === qs[1], 'Enter vai para a próxima quantidade');
+    D.dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await espera(150);
+    log(!D.getElementById('modal-rapido').classList.contains('is-open'), 'Esc fecha o pedido rápido');
+
+    // ---------- plantas em "Explore por categoria" + título do topo sem corte ----------
+    const pl = D.querySelector('#categorias .plantas');
+    log(!!pl && pl.querySelectorAll('.pl__f').length > 40 && !!D.querySelector('#categorias .pl__guirlanda'), `plantas na seção de categorias (${pl ? pl.querySelectorAll('.pl__f').length : 0} folhas + guirlanda)`);
+    W.scrollTo({ top: D.getElementById('categorias').getBoundingClientRect().top + W.scrollY - 150, behavior: 'instant' });
+    await ate(() => pl.classList.contains('is-in'), 4000);
+    const raf = await Promise.race([new Promise((r) => W.requestAnimationFrame(() => r('sim'))), espera(1500).then(() => 'NAO')]);
+    log(pl.classList.contains('is-in') && pl.classList.contains('is-on'), `ao chegar na seção, as plantas brotam (is-in) e animam (is-on) [classes="${pl.className}" visib=${document.visibilityState}/${D.visibilityState} rAF=${raf} tempo=${Math.round(performance.now() / 1000)}s]`);
+    W.scrollTo({ top: D.getElementById('vitrine').getBoundingClientRect().top + W.scrollY + 1500, behavior: 'instant' });
+    await ate(() => !pl.classList.contains('is-on'), 3000);
+    log(!pl.classList.contains('is-on'), 'fora da tela a animação das plantas pausa');
+    log(D.documentElement.scrollWidth <= W.innerWidth, 'plantas não criam rolagem lateral');
+    const tl = D.querySelector('.hero__title .tline em')?.closest('.tline');
+    log(!!tl && parseFloat(W.getComputedStyle(tl).paddingBottom) >= 0.2 * parseFloat(W.getComputedStyle(tl).fontSize), 'título do topo: folga embaixo para a perna do "g" de "grão" (sem corte)');
+
+    // ---------- privacidade, termos, sitemap ----------
+    const priv = await fetch('/privacidade.html'); const privTxt = await priv.text();
+    log(priv.ok && /Privacidade e Termos de Uso/.test(privTxt) && /art\. 18/.test(privTxt), 'página privacidade.html existe (LGPD + termos)');
+    log(!!D.querySelector('.footer a[href="privacidade.html"]'), 'rodapé tem o link "Privacidade e termos"');
+    W.LojaConta.abrir('cadastro'); await espera(200);
+    log(!!D.querySelector('#conta-content .conta__check a[href="privacidade.html"]'), 'cadastro: aceite com link para a política');
+    W.LojaApp.closeAll(true);
+    const sm = await fetch('/sitemap.xml'); const smTxt = await sm.text();
+    log(sm.ok && /<urlset/.test(smTxt) && /privacidade\.html/.test(smTxt), 'sitemap.xml existe com a loja e a privacidade');
+    const rb = await (await fetch('/robots.txt')).text();
+    log(/Sitemap:/.test(rb), 'robots.txt aponta o sitemap');
+
+    // ---------- celular ----------
+    W.localStorage.setItem('loja:vistos', JSON.stringify(C.produtos.slice(0, 5).map((p) => p.id)));
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim'); const Wc = fc.contentWindow, Dc = fc.contentDocument;
+    await ate(() => Dc.querySelectorAll('#grid .pcard').length); await espera(500);
+    log(!Dc.getElementById('vistos').hidden && Dc.documentElement.scrollWidth <= Wc.innerWidth, `celular: com "Você viu", a página cabe na tela (${Dc.documentElement.scrollWidth} ≤ ${Wc.innerWidth})`);
+    Dc.querySelector('[data-open="modal-rapido"]').click(); await espera(500);
+    const card = Dc.querySelector('#modal-rapido .modal__card').getBoundingClientRect();
+    const linha = Dc.querySelector('#pr-lista [data-prid]').getBoundingClientRect();
+    const campoQ = Dc.querySelector('#pr-lista [data-prq]').getBoundingClientRect();
+    log(card.right <= Wc.innerWidth + 1 && linha.right <= card.right + 1 && campoQ.right <= card.right && campoQ.width >= 60, `celular: pedido rápido cabe na tela (campo de quantidade ${Math.round(campoQ.width)} px)`);
+    log(Dc.documentElement.scrollWidth <= Wc.innerWidth, 'celular: sem rolagem lateral com o pedido rápido aberto');
+
+    log(!erros.length, 'sem erros de JavaScript' + (erros.length ? ': ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'ERRO NO TESTE: ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
+  Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+  document.getElementById('out').textContent = `${falhas ? 'FALHAS: ' + falhas : 'TUDO OK'} (${out.length} testes)\n` + out.join('\n');
+  document.title = 'FIM';
+})();
+</script>

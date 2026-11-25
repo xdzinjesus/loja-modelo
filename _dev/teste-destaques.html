@@ -1,0 +1,112 @@
+<!doctype html><meta charset="utf-8"><title>Teste destaques</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="adm" style="width:1280px;height:900px"></iframe>
+<iframe id="site" style="width:1366px;height:860px"></iframe>
+<script>
+// Destaques da vitrine: escolhidos no admin (tela "Destaques"), gravados em data/destaques.js pelo servidor local
+// e mostrados primeiro na vitrine (vitrine inicial, departamento e objetivo). No fim o arquivo volta a ficar vazio.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(60); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  const arquivo = async () => (await fetch('/data/destaques.js?t=' + Date.now(), { cache: 'no-store' })).text();
+  let PIN = '';
+  const post = (corpo, pin = PIN) => fetch('/_destaques/salvar', { method: 'POST', headers: { 'X-Loja-Pin': pin, 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+  const original = await arquivo();
+  try {
+    sessionStorage.clear();
+    const fa = document.getElementById('adm');
+    await carrega(fa, '/admin/');
+    const W = fa.contentWindow, D = fa.contentDocument, $ = (s) => D.querySelector(s);
+    const erros = []; W.addEventListener('error', (e) => erros.push(e.message));
+    W.confirm = () => true;
+    PIN = W.LOJA_CONFIG.contas.painelPin;
+    const C = W.LojaCatalog;
+
+    // ---------- regra do catálogo (sem servidor) ----------
+    const prim = (f, n = 3) => C.filtrar(f).slice(0, n).map((p) => p.codigo_sku);
+    const semDq = prim({ ordem: 'destaque' }, 1)[0];
+    const cast = C.produtos.filter((p) => p.categoria === 'castanhas');
+    const fora = C.produtos.find((p) => p.categoria !== 'castanhas');
+    const obj = (W.LOJA_CONFIG.objetivos || [])[0];
+    const doObj = obj ? C.produtos.filter((p) => (p._obj || []).includes(obj.id)) : [];
+    W.LOJA_DESTAQUES.todos = [cast[5].codigo_sku, fora.codigo_sku];
+    W.LOJA_DESTAQUES.castanhas = [cast[9].codigo_sku, fora.codigo_sku, cast[3].codigo_sku];
+    if (obj) W.LOJA_DESTAQUES['obj:' + obj.id] = [doObj[doObj.length - 1].codigo_sku];
+    log(JSON.stringify(prim({ ordem: 'destaque' }, 2)) === JSON.stringify([cast[5].codigo_sku, fora.codigo_sku]), 'vitrine inicial: os destaques vêm primeiro, na ordem escolhida');
+    log(JSON.stringify(prim({ categoria: 'castanhas', ordem: 'destaque' }, 2)) === JSON.stringify([cast[9].codigo_sku, cast[3].codigo_sku]), 'departamento: usa a lista dele e ignora produto de outro departamento');
+    if (obj) log(prim({ objetivo: obj.id, ordem: 'destaque' }, 1)[0] === doObj[doObj.length - 1].codigo_sku, `objetivo "${obj.nome}": usa a lista do objetivo`);
+    log(prim({ ordem: 'menor' }, 1)[0] !== cast[5].codigo_sku || C.precoBase(cast[5]) === C.precoBase(C.filtrar({ ordem: 'menor' })[0]), 'ordem "Menor preço" não é afetada pelos destaques');
+    log(!C.filtrar({ q: 'castanha', ordem: 'destaque' }).slice(0, 1).some((p) => p.codigo_sku === fora.codigo_sku), 'com busca, os destaques não passam na frente');
+    log(C.filtrar({ ordem: 'destaque' }).length === C.produtos.length, 'nenhum produto some nem repete (lista completa)');
+    W.LOJA_DESTAQUES.todos = []; delete W.LOJA_DESTAQUES.castanhas; if (obj) delete W.LOJA_DESTAQUES['obj:' + obj.id];
+    log(prim({ ordem: 'destaque' }, 1)[0] === semDq, 'lista vazia: volta aos mais vendidos');
+
+    // ---------- servidor: proteções ----------
+    log((await post({ chave: 'todos', skus: [] }, '0000')).status === 401, 'servidor recusa sem o PIN certo');
+    log((await post({ chave: 'Todos;x', skus: [] })).status === 400, 'servidor recusa lista com nome inválido');
+    log((await post({ chave: 'todos', skus: ['1;alert(1)'] })).status === 400, 'servidor recusa código inválido');
+    log((await post({ chave: 'todos', skus: C.produtos.slice(0, 17).map((p) => p.codigo_sku) })).status === 400, 'servidor recusa mais de 16');
+
+    // ---------- tela do admin ----------
+    await ate(() => $('#f-login'));
+    $('#f-login').elements.pin.value = PIN; $('#f-login').requestSubmit();
+    await ate(() => $('.kpis'));
+    log(!!$('#nav a[href="#destaques"]'), 'menu do admin tem "Destaques"');
+    W.location.hash = '#destaques';
+    await ate(() => $('[data-dq="chave"]'));
+    log($('#titulo').textContent === 'Destaques da vitrine' && /mais vendidos/.test($('#conteudo').textContent), 'tela abre (lista vazia explica que mostra os mais vendidos)');
+    const opts = [...$('[data-dq="chave"]').options].map((o) => o.value);
+    log(opts[0] === 'todos' && W.LOJA_CONFIG.categorias.every((c) => opts.includes(c.slug)) && (W.LOJA_CONFIG.objetivos || []).every((o) => opts.includes('obj:' + o.id)),
+      `dá para escolher a vitrine inicial, os ${W.LOJA_CONFIG.categorias.length} departamentos e os ${(W.LOJA_CONFIG.objetivos || []).length} objetivos`);
+    const sel = $('[data-dq="chave"]'); sel.value = 'castanhas'; sel.dispatchEvent(new W.Event('change', { bubbles: true }));
+    await ate(() => $('[data-dq="busca"]').placeholder.includes('Castanhas'));
+    const busca = async (q) => { const i = $('[data-dq="busca"]'); i.value = q; i.dispatchEvent(new W.Event('input', { bubbles: true })); await espera(60); };
+    const alvos = [cast[7], cast[2], cast[11]];
+    for (const p of alvos) { await busca(p.codigo_sku); $(`[data-dq-poe="${p.codigo_sku}"]`).click(); await espera(60); }
+    await busca(fora.nome.slice(0, 12));
+    log(!$(`[data-dq-poe="${fora.codigo_sku}"]`), 'busca só mostra produtos do departamento escolhido');
+    const ordem = () => [...D.querySelectorAll('[data-dq-lista] [data-sku]')].map((li) => li.dataset.sku);
+    log(JSON.stringify(ordem()) === JSON.stringify(alvos.map((p) => p.codigo_sku)) && /alterações não salvas/.test($('.dq__conta').textContent), 'adicionar 3 produtos (aparece "alterações não salvas")');
+    $('[data-dq-sobe="2"]').click(); await espera(60);   // 3º sobe para 2º
+    $('[data-dq-tira="0"]').click(); await espera(60);   // tira o 1º
+    const esperado = [cast[11].codigo_sku, cast[2].codigo_sku];
+    log(JSON.stringify(ordem()) === JSON.stringify(esperado), 'subir e tirar reorganizam a lista');
+    const previa = [...D.querySelectorAll('[data-dq-previa] li')].slice(0, 2).map((li) => li.textContent);
+    log(previa[0] === cast[11].nome && previa[1] === cast[2].nome && D.querySelectorAll('[data-dq-previa] li').length === 16, '"Como fica no site" mostra os 16 primeiros com os destaques na frente');
+    $('[data-dq-salva]').click();
+    await ate(async () => true); await ate(() => !/não salvas/.test($('.dq__conta')?.textContent || 'x'));
+    const txt = await arquivo();
+    log(txt.includes(`"castanhas":["${esperado.join('","')}"]`), 'salvar grava data/destaques.js');
+    log(/castanhas.*· 2 em destaque/i.test([...$('[data-dq="chave"]').options].find((o) => o.value === 'castanhas').textContent), 'a lista mostra "2 em destaque" no seletor');
+
+    // limite de 16 na tela
+    const sel2 = $('[data-dq="chave"]'); sel2.value = 'todos'; sel2.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(150); // a tela redesenha: pega o seletor de novo
+    for (const p of C.produtos.slice(0, 16)) { await busca(p.codigo_sku); $(`[data-dq-poe="${p.codigo_sku}"]`)?.click(); await espera(20); }
+    await busca(C.produtos[20].codigo_sku);
+    const n16 = D.querySelectorAll('[data-dq-lista] [data-sku]').length, b21 = $(`[data-dq-poe="${C.produtos[20].codigo_sku}"]`);
+    log(n16 === 16 && b21?.disabled, `com 16 na lista, "Adicionar" fica desativado (lista ${n16}, botão ${b21 ? (b21.disabled ? 'desativado' : 'ativo') : 'não achado'}; chave ${$('[data-dq="chave"]').value}; skus ${C.produtos.slice(0, 21).map((p) => p.codigo_sku).join(',')})`);
+    $('[data-dq-desfaz]').click(); await espera(60);
+    log(D.querySelectorAll('[data-dq-lista] [data-sku]').length === 0, '"Desfazer" volta ao que estava salvo');
+    log(erros.length === 0, 'admin sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+
+    // ---------- site: a vitrine do departamento abre com os destaques ----------
+    const fs = document.getElementById('site');
+    await carrega(fs, '/?noanim'); await espera(1200);
+    const Ws = fs.contentWindow, Ds = fs.contentDocument;
+    Ds.querySelector('[data-cat="castanhas"]').click(); await espera(500);
+    const cards = [...Ds.querySelectorAll('#grid .pcard')].slice(0, 2).map((c) => Ws.LojaCatalog.porId.get(c.dataset.id)?.codigo_sku);
+    log(JSON.stringify(cards) === JSON.stringify(esperado), `site: Castanhas abre com os destaques primeiro (${cards.join(', ')})`);
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  // limpa: tira as listas criadas pelo teste
+  await post({ chave: 'castanhas', skus: [] }); await post({ chave: 'todos', skus: [] });
+  const fim = await arquivo();
+  log(fim.replace(/\s/g, '') === original.replace(/\s/g, '') || /LOJA_DESTAQUES = \{\};/.test(fim), 'no fim data/destaques.js volta a ficar como estava');
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

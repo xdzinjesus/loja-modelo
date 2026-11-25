@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<title>Teste de SEO do produto</title>
+<pre id="out">RODANDO</pre>
+<iframe id="loja" title="Loja em teste" width="1000" height="720"></iframe>
+<script>
+(async () => {
+  const saida = document.getElementById('out');
+  const iframe = document.getElementById('loja');
+  const carregar = (url) => new Promise((resolve) => {
+    iframe.onload = () => resolve(iframe.contentDocument);
+    iframe.src = url;
+  });
+  const assert = (ok, mensagem) => { if (!ok) throw new Error(mensagem); };
+  const seletor = '#seo-produto-jsonld';
+  const meta = (doc, chave) => doc.head.querySelector(`meta[property="${chave}"]`)?.content;
+  const snapshot = (doc) => JSON.stringify([doc.title, ...[...doc.head.querySelectorAll('meta[name="description"], meta[property^="og:"]')].map((el) => el.outerHTML)]);
+  const ler = (doc) => JSON.parse(doc.querySelector(seletor).textContent);
+
+  try {
+    const inicial = await carregar('/?noanim&p=inexistente');
+    const loja = snapshot(inicial);
+    assert(!inicial.querySelector(seletor), 'SKU inválido mantém o SEO da loja');
+    const doc = await carregar('/?p=4423&noanim');
+    for (let i = 0; i < 50 && !doc.querySelector(seletor); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const produto = ler(doc);
+    assert(produto['@type'] === 'Product' && produto.sku === '4423', 'JSON-LD no link direto');
+    assert(produto.offers.priceCurrency === 'BRL' && produto.offers.price > 0, 'Oferta em BRL');
+    assert(produto.image === meta(doc, 'og:image') && new URL(produto.image).protocol === location.protocol, 'Imagem absoluta no JSON-LD e no Open Graph');
+    assert(doc.title.includes(produto.name) && meta(doc, 'og:title') === doc.title && meta(doc, 'og:type') === 'product', 'Título e tipo Open Graph');
+    assert(doc.querySelector('meta[name="description"]').content === produto.description && meta(doc, 'og:description') === produto.description, 'Descrição do produto');
+    assert(new URL(meta(doc, 'og:url')).search === '?p=4423', 'URL compartilhável do produto');
+    const relacionado = doc.querySelector('#modal-qv [data-rel]');
+    const skuRelacionado = relacionado.dataset.rel;
+    relacionado.click();
+    assert(ler(doc).sku === skuRelacionado && doc.querySelectorAll(seletor).length === 1, 'Trocar de produto atualiza o JSON-LD');
+    doc.querySelector('#modal-qv [data-close]').click();
+    assert(!doc.querySelector(seletor) && snapshot(doc) === loja, 'Fechar restaura todos os metadados da loja');
+    assert(doc.querySelectorAll('script[type="application/ld+json"]').length === 1, 'JSON-LD da loja preservado');
+    saida.textContent = 'TUDO OK (10 testes)';
+  } catch (erro) {
+    saida.textContent = 'FALHA: ' + erro.message;
+  }
+})();
+</script>
+</html>

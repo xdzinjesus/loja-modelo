@@ -1,0 +1,150 @@
+<!doctype html><meta charset="utf-8"><title>Teste endereço</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="pc" style="width:1280px;height:900px"></iframe>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<script>
+// Módulo de endereço (assets/js/endereco.js) + botão "Pedidos" no cabeçalho.
+// ViaCEP é simulado: o teste não depende da internet.
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 8000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(60); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  const digita = (W, el, v) => { el.value = v; el.dispatchEvent(new W.Event('input', { bubbles: true })); };
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim');
+    const W = f.contentWindow, D = f.contentDocument, $ = (s) => D.querySelector(s);
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    const urls = [];
+    const realFetch = W.fetch.bind(W);
+    W.fetch = (u, o) => {
+      const s = String(u); urls.push(s);
+      if (s.includes('viacep.com.br/ws/SC/Conc')) return Promise.resolve(new Response(JSON.stringify([
+        { cep: '89700-125', logradouro: 'Rua Marechal Deodoro', complemento: 'até 600/601', bairro: 'Centro', localidade: 'Concórdia', uf: 'SC' },
+        { cep: '89700-126', logradouro: 'Rua Marechal Deodoro', complemento: 'de 602/603 ao fim', bairro: 'Centro', localidade: 'Concórdia', uf: 'SC' }])));
+      if (s.includes('viacep.com.br/ws/89700158')) return Promise.resolve(new Response(JSON.stringify({ logradouro: 'Rua Doutor Maruri', bairro: 'Centro', localidade: 'Concórdia', uf: 'SC' })));
+      if (s.includes('viacep.com.br/ws/00000000')) return Promise.resolve(new Response(JSON.stringify({ erro: true })));
+      return realFetch(u, o);
+    };
+
+    // ---------- botão Pedidos sem login → pede login e depois mostra os pedidos ----------
+    $('.header [data-meus-pedidos]').click(); await espera(250);
+    log($('#modal-conta').classList.contains('is-open'), 'botão "Pedidos" no cabeçalho sem login abre o login');
+    W.LojaApp.closeAll(true);
+
+    const A = W.LojaContas;
+    await A.cadastrar({ nome: 'Teste Endereço', email: 'endereco@teste.com', fone: '49999990000', senha: 'teste1234' });
+    const prod = W.LojaCatalog.produtos.find((p) => !p._granel);
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    const ent = $('input[name="ent"][value="entrega"]'); ent.checked = true; ent.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(150);
+    log(!!$('#ck-end-slot .end') && !!$('#end-q'), 'entrega mostra o módulo de endereço com busca por texto');
+    log(!$('#ck-cep'), 'campo antigo só de CEP saiu');
+    log($('#end-bcid').value === 'Concórdia' && $('#end-buf').value === 'SC', 'cidade da loja já vem preenchida');
+
+    // avançar sem endereço não deixa
+    $('[data-ck="next"]').click(); await espera(150);
+    log(!!$('#end-q') && !$('.ck__lbl')?.textContent.includes('Etapa 2'), 'sem endereço não avança');
+
+    // busca escrita
+    digita(W, $('#end-q'), 'Rua Marechal Deodoro, 450');
+    await ate(() => D.querySelectorAll('#end-sug [data-sug]').length === 2);
+    log(D.querySelectorAll('#end-sug [data-sug]').length === 2, 'digitar "Rua Marechal Deodoro, 450" sugere 2 endereços');
+    log(urls.some((u) => /viacep\.com\.br\/ws\/SC\/Conc%C3%B3rdia\/Marechal%20Deodoro\/json/.test(u)), 'busca no ViaCEP sem o "Rua" e sem o número');
+    log($('#end-sug').textContent.includes('Marechal Deodoro, 450') && $('#end-sug').textContent.includes('89700-125'), 'sugestão mostra número digitado e CEP');
+    $('#end-sug [data-sug="0"]').click(); await espera(100);
+    log($('#end-rua').value === 'Rua Marechal Deodoro' && $('#end-num').value === '450' && $('#end-bairro').value === 'Centro' && $('#end-cep').value === '89700-125', 'escolher sugestão preenche rua, número, bairro e CEP');
+
+    // apartamento exige complemento
+    $('[data-tipo="apto"]').click(); await espera(60);
+    log($('label[for="end-comp"]').textContent.includes('Bloco e apartamento'), 'tipo Apartamento troca o campo para "Bloco e apartamento"');
+    $('[data-end="usar"]').click(); await espera(100);
+    log($('#end-comp').parentElement.classList.contains('is-error') && $('.end').textContent.includes('Informe bloco e apartamento'), 'apartamento sem bloco/apto mostra erro');
+    $('#end-comp').value = 'Bloco B, apto 302';
+    $('#end-ref').value = 'Em frente à padaria';
+    $('[data-instr="Deixar na portaria"]').click(); await espera(40);
+    $('#end-instr').value = 'Interfone 302';
+    $('[data-receb="outro"]').click(); await espera(40);
+    $('#end-rnome').value = 'Maria'; digita(W, $('#end-rfone'), '49988887777');
+    log($('#end-rfone').value === '(49) 98888-7777', 'telefone de quem recebe com máscara');
+    $('[data-apelido=""]').click(); await espera(40);
+    $('#end-apelido').value = 'Casa da mãe';
+    $('[data-end="usar"]').click(); await espera(120);
+    log(!!$('.end__item.is-sel') && $('.end__item.is-sel').textContent.includes('Casa da mãe'), 'endereço confirmado aparece selecionado na lista');
+    const salvos = JSON.parse(localStorage.getItem('loja:enderecos:' + A.usuario().id) || '[]');
+    log(salvos.length === 1 && salvos[0].padrao && salvos[0].complemento === 'Bloco B, apto 302', 'endereço salvo na conta e marcado como padrão');
+
+    // segue o checkout
+    $('[data-ck="next"]').click(); await espera(120);
+    $('[data-ck="next"]').click(); await espera(120);
+    const rev = $('.ck__end')?.textContent || '';
+    log(rev.includes('Rua Marechal Deodoro, 450 – Bloco B, apto 302') && rev.includes('Em frente à padaria') && rev.includes('Deixar na portaria; Interfone 302') && rev.includes('Maria'), 'revisão mostra endereço, referência, instruções e quem recebe');
+    $('#ck-obs').value = 'Embalar para presente';
+    $('[data-ck="confirm"]').click();
+    await ate(() => $('.ck__done'));
+    const ped = (await A.listarPedidos())[0];
+    const pe = ped.entrega;
+    log(pe.tipo === 'entrega' && pe.logradouro === 'Rua Marechal Deodoro' && pe.numero === '450' && pe.cep === '89700125' && pe.cidade === 'Concórdia' && pe.uf === 'SC', 'pedido salvo com endereço estruturado');
+    log(pe.recebedor?.nome === 'Maria' && pe.instrucoes.includes('portaria') && pe.referencia === 'Em frente à padaria' && pe.tipoLocal === 'apto', 'pedido salvo com referência, instruções, tipo e recebedor');
+    log(!('padrao' in pe) && !('id' in pe), 'pedido não leva campos internos do endereço salvo');
+    let msg = ''; W.open = (u) => { msg = decodeURIComponent(u); };
+    $('[data-ck="wa"]').click();
+    log(msg.includes('Rua Marechal Deodoro, 450 – Bloco B, apto 302') && msg.includes('Referência: Em frente à padaria') && msg.includes('Quem recebe: Maria') && msg.includes('google.com/maps') && msg.includes('Observações: Embalar'), 'WhatsApp leva endereço completo, mapa e observação');
+
+    // Meus pedidos mostra o endereço
+    W.LojaApp.closeAll(true);
+    $('.header [data-meus-pedidos]').click();
+    await ate(() => $('#modal-conta').classList.contains('is-open') && $('#modal-conta').textContent.includes(ped.id));
+    log($('#modal-conta').classList.contains('is-open') && $('#modal-conta').textContent.includes(ped.id), 'botão "Pedidos" logado abre direto Meus pedidos');
+    W.LojaApp.closeAll(true);
+
+    // segunda compra: lista de salvos, "sei o CEP", sem número, excluir
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    const ent2 = $('input[name="ent"][value="entrega"]'); ent2.checked = true; ent2.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(150);
+    log(D.querySelectorAll('.end__item').length === 1 && $('.end__item input').checked, 'próxima compra já mostra o endereço salvo selecionado');
+    $('[data-end="novo"]').click(); await espera(80);
+    digita(W, $('#end-bcep'), '00000000'); await ate(() => $('#end-bcep-info').textContent.includes('não encontrado'));
+    log($('#end-bcep-info').textContent.includes('não encontrado'), '"Sei o CEP" com CEP inexistente avisa');
+    digita(W, $('#end-bcep'), '89700158'); await ate(() => $('#end-rua'));
+    log($('#end-rua')?.value === 'Rua Doutor Maruri' && $('#end-cid').value === 'Concórdia', '"Sei o CEP" preenche rua e cidade');
+    const sn = $('#end-sn'); sn.checked = true; sn.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(60);
+    log($('#end-num').disabled, '"Sem número" desativa o número');
+    $('[data-apelido="Trabalho"]').click(); await espera(40);
+    $('[data-end="usar"]').click(); await espera(100);
+    log(D.querySelectorAll('.end__item').length === 2 && $('.end__item.is-sel').textContent.includes('Rua Doutor Maruri, s/n'), 'segundo endereço (s/n) salvo e selecionado');
+    const idTrab = $('.end__item.is-sel input').value;
+    $(`[data-end="excluir"][data-id="${idTrab}"]`).click(); await espera(60);
+    log(!$('[data-confirma]').hidden, 'excluir pede confirmação na própria tela');
+    $('[data-end="sim-excluir"]').click(); await espera(80);
+    log(D.querySelectorAll('.end__item').length === 1 && $('.end__item input').checked, 'excluído; volta a selecionar o que sobrou');
+    $('[data-end="editar"]').click(); await espera(80);
+    log($('#end-comp')?.value === 'Bloco B, apto 302' && $('[data-instr="Deixar na portaria"]').classList.contains('is-on') && $('#end-instr').value === 'Interfone 302', 'editar reabre com tudo preenchido');
+    $('[data-end="cancelar"]').click(); await espera(60);
+    W.LojaApp.closeAll(true);
+
+    // ---------- celular ----------
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim');
+    const Wc = fc.contentWindow, Dc = fc.contentDocument;
+    const btnCel = [...Dc.querySelectorAll('.header [data-meus-pedidos]')].find((b) => b.offsetParent !== null);
+    log(!!btnCel, 'celular: botão "Pedidos" visível no cabeçalho');
+    Wc.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    Wc.LojaApp.abrirCheckout(); await espera(250);
+    const e3 = Dc.querySelector('input[name="ent"][value="entrega"]'); e3.checked = true; e3.dispatchEvent(new Wc.Event('change', { bubbles: true })); await espera(150);
+    Dc.querySelector('[data-end="novo"]')?.click(); await espera(100);
+    const card = Dc.querySelector('#modal-checkout .modal__card') || Dc.querySelector('#modal-checkout');
+    log(card.scrollWidth <= card.clientWidth + 1, `celular: módulo cabe na largura (${card.scrollWidth} ≤ ${card.clientWidth})`);
+
+    log(erros.length === 0, 'sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

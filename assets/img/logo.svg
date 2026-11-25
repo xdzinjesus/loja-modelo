@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 108">
+  <!-- Logo neutro provisório. Troque este arquivo pelo logo da empresa (SVG ou PNG com o mesmo nome em index.html). -->
+  <rect x="6" y="30" width="48" height="48" rx="10" fill="#1F2937"/>
+  <rect x="20" y="44" width="20" height="20" rx="3" fill="#fff"/>
+  <text x="68" y="66" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#1F2937">Sua Loja</text>
+</svg>

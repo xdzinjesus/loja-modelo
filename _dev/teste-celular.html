@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>celular</title>
+<style>body{margin:0;background:#ddd;display:flex;gap:20px;padding:10px}iframe{width:390px;height:844px;border:0;background:#fff}</style>
+<iframe id="a"></iframe><iframe id="b"></iframe>
+<script>
+// Duas telas de celular (390 px) para conferência visual. ?a=seletor&b=seletor rola até o elemento.
+const q = new URLSearchParams(location.search);
+[['a', q.get('a') || '#vitrine'], ['b', q.get('b') || '#reviews']].forEach(([id, sel]) => {
+  const f = document.getElementById(id); f.src = '/?noanim';
+  f.onload = () => setTimeout(() => { const el = f.contentDocument.querySelector(sel); if (el) f.contentWindow.scrollTo({ top: el.getBoundingClientRect().top + f.contentWindow.scrollY - 70, behavior: 'instant' }); }, 1500);
+});
+</script>

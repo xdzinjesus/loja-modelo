@@ -1,0 +1,1 @@
+﻿Coloque aqui as fotos dos produtos com o nome = código do produto (ex.: 1234.jpg). tools\sincronizar-fotos.ps1 copia para assets\produtos.

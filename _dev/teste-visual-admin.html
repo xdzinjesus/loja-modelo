@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><title>seed admin</title>
+<script>
+// Semente de demonstração para prints da área administrativa (apaga os dados loja:* deste navegador).
+const q = new URLSearchParams(location.search);
+Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+const agora = Date.now(), iso = (d) => new Date(agora - d * 864e5).toISOString();
+const S = { salt: 'x', hash: 'y', iter: 1 };
+const us = [
+  { id: 'u1', nome: 'Maria Souza', email: 'maria@emporio.com', fone: '49999999999', senha: S, criadoEm: iso(60), ultimoAcesso: iso(0.05), acessos: 31, notaInterna: 'Retira sempre sábado de manhã.', atacado: { status: 'aprovado', cnpj: '11222333000181', razaoSocial: 'Empório Maria Ltda', cidade: 'Concórdia/SC', ramo: 'Mercado / Empório', solicitadoEm: iso(50), respondidoEm: iso(49), descontoPercentual: 8 } },
+  { id: 'u2', nome: 'João Pereira', email: 'joao@gmail.com', fone: '49988887777', senha: S, criadoEm: iso(25), ultimoAcesso: iso(1.2), acessos: 9, atacado: { status: 'nenhum' } },
+  { id: 'u3', nome: 'Ana Lima', email: 'ana@padariaana.com', fone: '49977776666', senha: S, criadoEm: iso(4), ultimoAcesso: iso(0.3), acessos: 3, atacado: { status: 'pendente', cnpj: '45997418000153', razaoSocial: 'Padaria da Ana', cidade: 'Seara/SC', ramo: 'Padaria / Confeitaria', solicitadoEm: iso(0.4) } },
+  { id: 'u4', nome: 'Carlos Mendes', email: 'carlos@hotmail.com', fone: '49966665555', senha: S, criadoEm: iso(40), ultimoAcesso: iso(12), acessos: 5, bloqueado: { em: iso(2), motivo: 'Pedidos falsos' }, atacado: { status: 'nenhum' } },
+  { id: 'u5', nome: 'Restaurante Sabor', email: 'compras@sabor.com', fone: '49955554444', senha: S, criadoEm: iso(35), ultimoAcesso: iso(2), acessos: 14, atacado: { status: 'aprovado', cnpj: '19131243000197', razaoSocial: 'Sabor & Cia Restaurante', cidade: 'Chapecó/SC', ramo: 'Restaurante / Lanchonete', solicitadoEm: iso(34), respondidoEm: iso(33) } }
+];
+const prods = [['95', 'Oliveira em Folhas', 22.5, 250], ['3392', 'Ora Pro Nobis 120 caps 4 Elementos', 65, null], ['239', 'Orégano Peruano Flocos', 22, 500], ['3011', 'Orange Pepper', 8.9, 100], ['1987', 'Ora Pro Nobis em Pó', 45, 500], ['4234', 'Ovo Integral Desidratado em Pó', 10, 500]];
+let seq = 100000, peds = [];
+const st = ['entregue', 'entregue', 'entregue', 'pronto', 'separando', 'confirmado', 'recebido'];
+for (let d = 13.5; d >= 0; d -= 0.5) {
+  if ((d * 7) % 3 < 1) continue;
+  const u = us[[0, 1, 4, 0, 1, 2][Math.floor(d * 3) % 6]]; const atac = u.atacado.status === 'aprovado';
+  const n = 1 + (Math.floor(d * 5) % 3);
+  const itens = Array.from({ length: n }, (_, i) => { const p = prods[(Math.floor(d * 11) + i) % prods.length]; const qty = atac ? 4 + i * 3 : 1 + i; return { id: p[0], sku: p[0], nome: p[1], g: p[3], conteudo: p[3] ? null : '120 cápsulas', qty, unitario: p[2], total: +(p[2] * qty).toFixed(2) }; });
+  const sub = itens.reduce((s, i) => s + i.total, 0), da = atac ? +(sub * (u.atacado.descontoPercentual || 0) / 100).toFixed(2) : 0;
+  const status = d < 1 ? st[(seq) % 7] : d < 3 ? 'pronto' : (seq % 11 === 0 ? 'cancelado' : 'entregue');
+  peds.push({ id: 'KD' + (seq += 137), usuarioId: u.id, criadoEm: iso(d), status, atacado: atac, itens, subtotal: sub, frete: 0, descontoPix: 0, descontoAtacado: da, total: +(sub - da).toFixed(2), entrega: { tipo: d % 2 ? 'entrega' : 'retirada', cep: '89700158' }, pagamento: ['pix', 'cartao', 'dinheiro'][seq % 3], cliente: { nome: u.nome, fone: u.fone }, historico: [{ status: 'recebido', em: iso(d) }, ...(status !== 'recebido' ? [{ status, em: iso(Math.max(d - 0.1, 0)), nota: status === 'pronto' ? 'Pode retirar no balcão.' : undefined }] : [])] });
+}
+peds.sort((a, b) => b.criadoEm.localeCompare(a.criadoEm));
+const log = [];
+us.forEach((u) => log.push({ em: u.criadoEm, tipo: 'cadastro', usuarioId: u.id, email: u.email }));
+for (let i = 0; i < 4; i++) log.push({ em: iso(0.2 - i * 0.01), tipo: 'login-falhou', usuarioId: 'u2', email: 'joao@gmail.com', detalhe: 'senha incorreta' });
+log.push({ em: iso(0.1), tipo: 'login-falhou', usuarioId: null, email: 'teste@x.com', detalhe: 'e-mail não cadastrado' });
+log.push({ em: iso(2), tipo: 'admin-bloqueou', usuarioId: 'u4', email: 'carlos@hotmail.com', detalhe: 'Pedidos falsos' });
+us.forEach((u) => log.push({ em: u.ultimoAcesso, tipo: 'login', usuarioId: u.id, email: u.email }));
+log.push({ em: iso(0.4), tipo: 'atacado-solicitado', usuarioId: 'u3', email: 'ana@padariaana.com', detalhe: 'Padaria da Ana · CNPJ 45.997.418/0001-53' });
+log.sort((a, b) => a.em.localeCompare(b.em));
+localStorage.setItem('loja:db:usuarios', JSON.stringify(us));
+localStorage.setItem('loja:db:pedidos', JSON.stringify(peds));
+localStorage.setItem('loja:db:log', JSON.stringify(log));
+sessionStorage.setItem('loja:admin', '1');
+location.replace('/admin/#' + (q.get('r') || 'visao'));
+</script>

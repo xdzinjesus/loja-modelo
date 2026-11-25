@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- [TROCAR] modelo sem dominio: defina loja.dominio em assets/js/config.js e rode tools/gerar-sitemap.ps1 de novo -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.SEU-DOMINIO.com.br/</loc><lastmod>2026-11-24</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.SEU-DOMINIO.com.br/privacidade.html</loc><lastmod>2026-11-24</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>

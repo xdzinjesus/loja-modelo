@@ -1,0 +1,129 @@
+<!doctype html><meta charset="utf-8"><title>Teste melhorias</title>
+<style>body{font:13px monospace;margin:0} iframe{border:0;display:block}</style>
+<pre id="out">RODANDO</pre>
+<iframe id="cel" style="width:390px;height:844px"></iframe>
+<iframe id="pc" style="width:1366px;height:860px"></iframe>
+<script>
+// Melhorias de 24/11/2026: celular sem corte, miniaturas, link do produto, compartilhar, "Combina com",
+// CEP automático, observações do pedido, voltar ao topo, SEO (robots/manifest/JSON-LD).
+(async () => {
+  const out = []; let falhas = 0;
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 10000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(80); } return null; };
+  const carrega = (f, src) => new Promise((r) => { f.onload = r; f.src = src; });
+  try {
+    Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+    // ---------- celular ----------
+    const fc = document.getElementById('cel');
+    await carrega(fc, '/?noanim');
+    const Wc = fc.contentWindow, Dc = fc.contentDocument;
+    await espera(1500);
+    log(Dc.documentElement.scrollWidth <= Wc.innerWidth, `celular: página cabe na tela (${Dc.documentElement.scrollWidth} ≤ ${Wc.innerWidth})`);
+    const c2 = Dc.querySelectorAll('#grid .pcard')[1].getBoundingClientRect();
+    log(c2.right <= Wc.innerWidth, `celular: 2º produto da linha inteiro (borda direita ${Math.round(c2.right)})`);
+
+    // ---------- computador ----------
+    const f = document.getElementById('pc');
+    await carrega(f, '/?noanim&p=4423');
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => { if (e.message) erros.push(e.message); });
+    await ate(() => D.getElementById('modal-qv').classList.contains('is-open'), 5000);
+    log(D.getElementById('modal-qv').classList.contains('is-open') && D.querySelector('#qv-content h2').textContent.includes('Mix de Castanhas'), 'link ?p=4423 abre o produto direto');
+    // miniaturas
+    const imgs = [...D.querySelectorAll('#grid img.main')];
+    const mini = imgs.filter((i) => i.getAttribute('src').includes('produtos/mini/'));
+    log(mini.length > 0 && mini.every((i) => i.dataset.full && i.dataset.full.includes('assets/produtos/') && !i.dataset.full.includes('/mini/')), `vitrine usa miniaturas (${mini.length} de ${imgs.length} fotos)`);
+    log(!!D.querySelector('.qv__media img') && !D.querySelector('.qv__media img').getAttribute('src').includes('/mini/'), 'visualização do produto usa a foto grande');
+    // fotos da vitrine são "lazy": só baixam quando aparecem na tela
+    W.LojaApp.closeAll(true);
+    W.scrollTo({ top: D.getElementById('grid').getBoundingClientRect().top + W.scrollY - 150, behavior: 'instant' });
+    await ate(() => mini.length && mini.slice(0, 4).every((i) => i.complete && i.naturalWidth), 8000);
+    log(mini.slice(0, 4).every((i) => i.naturalWidth === 480), 'miniaturas carregam com 480 px');
+    // fallback
+    const t = D.createElement('img'); t.dataset.full = mini[0].dataset.full; t.src = 'assets/produtos/mini/nao-existe-999.jpg'; D.body.appendChild(t);
+    await ate(() => t.src.includes(mini[0].dataset.full.split('/').pop()) && !t.src.includes('/mini/'), 4000);
+    log(!t.src.includes('/mini/'), 'miniatura ausente → usa a foto grande');
+    t.remove();
+    // fade-in
+    const prontas = mini.slice(0, 4);
+    await ate(() => prontas.every((i) => i.classList.contains('ok') && W.getComputedStyle(i).opacity === '1'), 6000);
+    log(prontas.every((i) => i.classList.contains('ok') && W.getComputedStyle(i).opacity === '1'), 'fotos carregadas aparecem com fade (classe .ok, opacidade final 1)');
+    const vazias = imgs.filter((i) => !i.classList.contains('ok'));
+    log(vazias.every((i) => !i.complete || !i.naturalWidth), `nenhuma foto carregada ficou invisível (${vazias.length} ainda baixando)`);
+    // combina com (reabre o produto do link)
+    W.scrollTo({ top: 0, behavior: 'instant' });
+    D.getElementById('search-input').value = 'Mix de Castanhas e Frutas'; D.getElementById('search-input').dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.querySelector('#search-results [data-sid="4423"]')); D.querySelector('#search-results [data-sid="4423"]').click();
+    await ate(() => D.getElementById('modal-qv').classList.contains('is-open'));
+    const rel = D.querySelectorAll('#qv-content .qv__relitem');
+    log(rel.length >= 2, `"Combina com" mostra ${rel.length} produtos`);
+    const nomeRel = rel[0].querySelector('span').textContent; rel[0].click(); await espera(300);
+    log(D.querySelector('#qv-content h2').textContent === nomeRel, 'clicar numa sugestão abre aquele produto');
+    // compartilhar (sem menu nativo → copia o link)
+    Object.defineProperty(W.navigator, 'share', { value: undefined, configurable: true });
+    let copiado = ''; Object.defineProperty(W.navigator, 'clipboard', { value: { writeText: async (x) => { copiado = x; } }, configurable: true });
+    D.getElementById('qv-share').click(); await espera(300);
+    log(/\?p=\d+/.test(copiado) && [...D.querySelectorAll('.toast')].some((x) => x.textContent.includes('copiado')), 'Compartilhar copia o link do produto → ' + copiado.split('\n').pop());
+    W.LojaApp.closeAll(true);
+    // voltar ao topo
+    W.scrollTo({ top: 3000, behavior: 'instant' }); await espera(300);
+    log(D.getElementById('topo-fab').classList.contains('on'), 'botão "voltar ao topo" aparece ao rolar');
+    W.scrollTo({ top: 0, behavior: 'instant' }); await espera(200);
+    log(!D.getElementById('topo-fab').classList.contains('on'), 'e some no topo');
+
+    // ---------- checkout: CEP + observações ----------
+    const realFetch = W.fetch.bind(W);
+    W.fetch = (u, o) => {
+      if (String(u).includes('viacep.com.br/ws/89700158')) return Promise.resolve(new Response(JSON.stringify({ localidade: 'Concórdia', uf: 'SC', logradouro: 'Rua Doutor Maruri', bairro: 'Centro' })));
+      if (String(u).includes('viacep.com.br/ws/00000000')) return Promise.resolve(new Response(JSON.stringify({ erro: true })));
+      return realFetch(u, o);
+    };
+    const A = W.LojaContas;
+    await A.cadastrar({ nome: 'Teste Melhorias', email: 'melhorias@teste.com', fone: '49999990000', senha: 'teste1234' });
+    const prod = W.LojaCatalog.produtos.find((p) => !p._granel);
+    W.LojaApp.repetirItens([{ id: prod.id, g: null, qty: 1, nome: prod.nome }]);
+    W.LojaApp.abrirCheckout(); await espera(200);
+    const ent = D.querySelector('input[name="ent"][value="entrega"]'); ent.checked = true; ent.dispatchEvent(new W.Event('change', { bubbles: true })); await espera(150);
+    // endereço pelo módulo novo (detalhado em _dev/teste-endereco.html): atalho "Sei o CEP"
+    const cep = () => D.getElementById('end-bcep');
+    cep().value = '00000000'; cep().dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.getElementById('end-bcep-info').textContent.includes('não encontrado'));
+    log(D.getElementById('end-bcep-info').textContent.includes('não encontrado'), 'CEP inexistente avisa o cliente');
+    D.querySelector('[data-ck="next"]').click(); await espera(150);
+    log(!!D.getElementById('end-q') && !D.querySelector('.ck__end'), 'sem endereço não deixa avançar');
+    cep().value = '89700158'; cep().dispatchEvent(new W.Event('input', { bubbles: true }));
+    await ate(() => D.getElementById('end-rua'));
+    log(D.getElementById('end-rua').value === 'Rua Doutor Maruri' && D.getElementById('end-cep').value === '89700-158', 'CEP com máscara e endereço encontrado');
+    D.getElementById('end-num').value = '1347';
+    D.querySelector('[data-end="usar"]').click(); await espera(100);
+    D.querySelector('[data-ck="next"]').click(); await espera(150);
+    D.querySelector('[data-ck="next"]').click(); await espera(150);
+    log(D.getElementById('checkout-content').textContent.includes('Rua Doutor Maruri'), 'revisão mostra o endereço');
+    D.getElementById('ck-obs').value = 'Embalar para presente, por favor';
+    D.querySelector('[data-ck="confirm"]').click();
+    await ate(() => D.querySelector('.ck__done'));
+    const ped = (await A.listarPedidos())[0];
+    log(ped.observacoes === 'Embalar para presente, por favor', 'observação salva no pedido');
+    log(ped.entrega.cidade === 'Concórdia' && ped.entrega.uf === 'SC' && ped.entrega.logradouro === 'Rua Doutor Maruri' && ped.entrega.numero === '1347', 'endereço salvo no pedido');
+    let msgWa = ''; W.open = (u) => { msgWa = decodeURIComponent(u); };
+    D.querySelector('[data-ck="wa"]').click();
+    log(msgWa.includes('Observações: Embalar para presente') && msgWa.includes('Concórdia/SC') && msgWa.includes('Rua Doutor Maruri, 1347'), 'mensagem do WhatsApp leva endereço e observação');
+
+    // ---------- arquivos de SEO ----------
+    const rb = await fetch('/robots.txt'); log(rb.ok && (await rb.text()).includes('Disallow: /admin/'), 'robots.txt esconde /admin/ dos buscadores');
+    const mf = await fetch('/manifest.webmanifest'); const mj = mf.ok ? await mf.json() : {};
+    log(mj.short_name === 'Kadosh' && mj.icons?.length === 2, 'manifest (adicionar à tela inicial) válido');
+    const ic = await Promise.all(['icone-180', 'icone-192', 'icone-512'].map((n) => fetch(`/assets/img/${n}.png`).then((r) => r.ok)));
+    log(ic.every(Boolean), 'ícones do app existem');
+    let ld = null; try { ld = JSON.parse(D.querySelector('script[type="application/ld+json"]').textContent); } catch {}
+    log(ld && ld['@type'] === 'Store' && ld.address.addressLocality === 'Concórdia', 'dados da loja para o Google (JSON-LD) válidos');
+    log(!!D.querySelector('meta[property="og:title"]') && !!D.querySelector('meta[property="og:image"]'), 'prévia de compartilhamento (Open Graph) presente');
+    log(erros.length === 0, 'sem erros de JavaScript' + (erros.length ? ' → ' + erros.join(' | ') : ''));
+  } catch (e) { log(false, 'EXCEÇÃO ' + e.message + '\n' + e.stack); }
+  Object.keys(localStorage).filter((k) => k.startsWith('loja:')).forEach((k) => localStorage.removeItem(k));
+  const texto = `RESULTADO: ${falhas ? falhas + ' FALHA(S)' : 'TUDO OK'}\n` + out.join('\n');
+  document.getElementById('out').textContent = texto;
+  fetch('/_save-tmp', { method: 'POST', body: texto });
+})();
+</script>

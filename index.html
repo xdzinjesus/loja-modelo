@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sua Loja — Loja online</title>
+  <meta name="description" content="Sua Loja: catálogo online, atacado e varejo.">
+  <meta name="theme-color" content="#1F2937">
+  <!-- Prévia ao compartilhar (WhatsApp, Facebook, Instagram). [TROCAR] og:image/og:url para o endereço completo quando houver domínio -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:site_name" content="Sua Loja">
+  <meta property="og:title" content="Sua Loja — Loja online">
+  <meta property="og:description" content="Catálogo online, atacado e varejo.">
+  <meta property="og:image" content="assets/img/hero-1.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="apple-touch-icon" href="assets/img/icone-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- Dados da loja para o Google (endereço, horário, telefone) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": "Sua Loja",
+    "description": "Catálogo online. Atacado e varejo.",
+    "telephone": "",
+    "address": { "@type": "PostalAddress", "streetAddress": "", "addressLocality": "", "addressRegion": "", "postalCode": "", "addressCountry": "BR" },
+    "openingHoursSpecification": [
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "opens": "07:30", "closes": "18:30" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "08:00", "closes": "12:00" }
+    ],
+    "sameAs": [],
+    "paymentAccepted": "Pix, Cartão de crédito, Cartão de débito, Dinheiro",
+    "priceRange": "$$"
+  }
+  </script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231F2937'/%3E%3Crect x='20' y='20' width='24' height='24' rx='4' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/css/fonts.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/melhorias.css">
+  <link rel="stylesheet" href="assets/css/conta.css">
+  <link rel="stylesheet" href="assets/css/endereco.css">
+</head>
+<body>
+<!-- ======================= SPRITE DE ÍCONES ======================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Marca: logo neutro em texto. Para usar um logo próprio, troque assets/img/logo.svg -->
+    <linearGradient id="kd-wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4B5563"/><stop offset=".5" stop-color="#374151"/><stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+    <linearGradient id="kd-leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#93C5FD"/><stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <path id="kd-leafshape" d="M0 0C7-9 19-9 26 0 19 9 7 9 0 0Z"/>
+    <!-- Logo da loja (assets/img/logo.svg) -->
+    <symbol id="brand-logo" viewBox="0 -12 300 108">
+      <image href="assets/img/logo.svg" x="0" y="-12" width="300" height="108" preserveAspectRatio="xMidYMid meet"/>
+    </symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19.5 12.6 12 20l-7.5-7.4A4.9 4.9 0 0 1 12 6a4.9 4.9 0 0 1 7.5 6.6z"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9h16l-1.5-5h-13zM5 9v11h14V9M10 20v-6h4v6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15"/><path d="M5 19 13 11"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></symbol>
+    <symbol id="i-percent" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v6c0 4.5 3 7.7 7 9 4-1.3 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></symbol>
+    <symbol id="i-whats" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-7.8 13.4L3 21l4.7-1.2A9 9 0 1 0 12 3z"/><path d="M8.8 8.3c.2-.5.5-.5.8-.5h.5c.2 0 .4 0 .6.4l.8 1.9c.1.2 0 .4 0 .5l-.5.7c-.1.1-.2.3 0 .5.7 1.2 1.8 2.1 3 2.6.2.1.4 0 .5-.1l.6-.8c.2-.2.4-.2.6-.1l1.8.9c.2.1.4.2.4.4 0 .5-.2 1.2-.7 1.6-.6.5-1.6.7-2.8.3a10 10 0 0 1-5.2-4.6c-.8-1.4-.6-2.6-.4-3.1z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-insta" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".9" fill="currentColor"/></symbol>
+    <symbol id="i-capsule" viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="m9.2 15.9 5.6-8"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/></symbol>
+    <symbol id="i-jar" viewBox="0 0 24 24"><path d="M8 3h8v3H8zM7 6h10l1 3v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9z"/><path d="M6 12h12"/></symbol>
+    <symbol id="i-cup" viewBox="0 0 24 24"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3c0 1.5 1 1.5 1 3M12 3c0 1.5 1 1.5 1 3"/></symbol>
+    <symbol id="i-wheat" viewBox="0 0 24 24"><path d="M12 21V8"/><path d="M12 8c-2-1-3-3-3-5 2 1 3 3 3 5zM12 8c2-1 3-3 3-5-2 1-3 3-3 5zM12 13c-2-1-3.5-2.5-3.5-4.5 2 .7 3.5 2.5 3.5 4.5zM12 13c2-1 3.5-2.5 3.5-4.5-2 .7-3.5 2.5-3.5 4.5zM12 18c-2-1-3.5-2.5-3.5-4.5 2 .7 3.5 2.5 3.5 4.5zM12 18c2-1 3.5-2.5 3.5-4.5-2 .7-3.5 2.5-3.5 4.5z"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><path d="M2.5 9h19v-3h-19zM12 6v14.5M12 6S10.5 2.5 8 3.5 9 6 12 6zM12 6s1.5-3.5 4-2.5S15 6 12 6z"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.6 2.6 0 0 0 5 0zM19 8l-2.5 6a2.6 2.6 0 0 0 5 0z"/></symbol>
+  </defs>
+</svg>
+
+<!-- ======================= ABERTURA (intro animada) ======================= -->
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro__stage">
+    <svg class="intro__ring" id="intro-ring" viewBox="-130 -130 260 260"></svg>
+    <div class="intro__logo"><svg class="brand" viewBox="0 -12 300 108"><use href="#brand-logo"/></svg></div>
+    <p class="intro__tag" data-cfg="slogan">Qualidade e bom atendimento</p>
+  </div>
+  <div class="intro__panel intro__panel--a"></div>
+  <div class="intro__panel intro__panel--b"></div>
+</div>
+
+<!-- ======================= TOP BAR ======================= -->
+<div class="topbar" role="note">
+  <div class="topbar__track">
+    <span><svg><use href="#i-scale"/></svg>Atacado e Varejo</span>
+    <span><svg><use href="#i-truck"/></svg>Enviamos para todo o Brasil</span>
+    <span><svg><use href="#i-store"/></svg>Retirada na loja em <span data-cfg="cidadeUf">Cidade/UF</span></span>
+    <span><svg><use href="#i-box"/></svg>Catálogo completo online</span>
+    <span><svg><use href="#i-shield"/></svg>Compra segura</span>
+  </div>
+</div>
+
+<!-- ======================= HEADER ======================= -->
+<header class="header" id="header">
+  <div class="header__main container">
+    <button class="icon-btn header__burger" data-open="drawer-menu" aria-label="Abrir menu"><svg><use href="#i-menu"/></svg></button>
+
+    <a href="#inicio" class="logo" aria-label="Início">
+      <svg class="brand" aria-hidden="true"><use href="#brand-logo"/></svg>
+    </a>
+
+    <div class="search" id="search">
+      <svg class="search__icon"><use href="#i-search"/></svg>
+      <input id="search-input" type="search" autocomplete="off" placeholder="Busque por produto, benefício ou código…" aria-label="Buscar produtos" aria-controls="search-results">
+      <kbd class="search__kbd">/</kbd>
+      <div class="search__panel" id="search-results" role="listbox" hidden></div>
+    </div>
+
+    <nav class="header__actions" aria-label="Atalhos">
+      <a class="icon-link hide-sm" href="#atacado"><svg><use href="#i-box"/></svg><span>Atacado</span></a>
+      <button class="icon-link" data-open="drawer-fav" aria-label="Favoritos"><svg><use href="#i-heart"/></svg><span class="hide-sm">Favoritos</span><i class="badge" data-count="fav" hidden>0</i></button>
+      <button class="icon-link" data-meus-pedidos aria-label="Meus pedidos"><svg><use href="#i-truck"/></svg><span class="hide-sm">Pedidos</span></button>
+      <button class="icon-link hide-sm" data-open="modal-conta" aria-label="Minha conta"><svg><use href="#i-user"/></svg><span>Conta</span></button>
+      <button class="icon-link icon-link--cart" data-open="drawer-cart" aria-label="Carrinho"><svg><use href="#i-bag"/></svg><span class="hide-sm">Carrinho</span><i class="badge" data-count="cart" hidden>0</i></button>
+    </nav>
+  </div>
+
+  <nav class="nav container" aria-label="Departamentos">
+    <button class="nav__all" id="mega-toggle" aria-expanded="false" aria-controls="mega"><svg><use href="#i-grid"/></svg>Todos os departamentos<svg class="chev"><use href="#i-down"/></svg></button>
+    <ul class="nav__links" id="nav-links"></ul>
+    <a class="nav__promo" href="#vitrine" data-filter-restr="granel"><svg><use href="#i-scale"/></svg>Por peso</a>
+  </nav>
+
+  <div class="mega" id="mega" hidden>
+    <div class="mega__inner container" id="mega-inner"></div>
+  </div>
+</header>
+
+<main id="inicio">
+  <!-- ======================= HERO ======================= -->
+  <section class="hero">
+    <div class="hero__bg" aria-hidden="true"></div>
+    <div class="hero__aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="container hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow reveal"><span class="dot"></span><span data-cfg="cidadeUf">Cidade/UF</span> · Atacado &amp; Varejo</p>
+        <h1 class="hero__title">
+          <span class="tline"><span>Tudo o que você precisa,</span></span>
+          <span class="tline"><em>em um só lugar.</em></span>
+        </h1>
+        <p class="hero__lead reveal">Catálogo completo com preço de varejo e de atacado. Escolha, monte o pedido e finalize pelo site ou pelo WhatsApp.</p>
+        <div class="hero__ctas reveal">
+          <a href="#vitrine" class="btn btn--primary btn--lg"><svg><use href="#i-bag"/></svg>Comprar no Varejo</a>
+          <a href="#atacado" class="btn btn--ghost btn--lg" data-wa="atacado"><svg><use href="#i-whats"/></svg>Cotação Atacado</a>
+        </div>
+        <ul class="hero__stats reveal">
+          <li><b data-countup="0">0</b><span>produtos no catálogo</span></li>
+          <li><b>Pix</b><span>e cartão</span></li>
+          <li><b>Brasil</b><span>enviamos para todo o país</span></li>
+        </ul>
+      </div>
+
+      <div class="hero__art" id="hero-art" aria-hidden="true">
+        <div class="arch arch--main" data-depth="0.25"><img src="assets/img/hero-1.svg" alt="" fetchpriority="high"></div>
+        <div class="arch arch--side" data-depth="0.5"><img src="assets/img/hero-2.svg" alt=""></div>
+        <div class="disc disc--small" data-depth="0.7"><img src="assets/img/hero-3.svg" alt=""></div>
+        <div class="seal" data-depth="0.4">
+          <svg viewBox="0 0 120 120"><defs><path id="seal-c" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs><text><textPath href="#seal-c">ATACADO • VAREJO • ENTREGA • QUALIDADE • </textPath></text></svg>
+          <span><svg><use href="#i-leaf"/></svg></span>
+        </div>
+      </div>
+    </div>
+
+    <a class="hero__scroll" href="#categorias" aria-label="Rolar para os departamentos"><span></span></a>
+    <div class="hero__ribbon">
+      <div class="container hero__ribbon-in">
+        <span><svg><use href="#i-truck"/></svg><b>Entrega para todo o Brasil</b> e retirada na loja</span>
+        <span><svg><use href="#i-scale"/></svg><b>Compre do seu jeito</b> — por unidade ou por peso</span>
+        <span><svg><use href="#i-shield"/></svg><b>Compra segura</b> e atendimento humano no WhatsApp</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CATEGORIAS ======================= -->
+  <section class="section section--tight" id="categorias">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span>Departamentos</p>
+          <h2 class="h2">Explore por <em>categoria</em></h2>
+        </div>
+        <div class="rail-ctrl">
+          <button class="round-btn" data-rail="cat-rail" data-dir="-1" aria-label="Anterior"><svg><use href="#i-left"/></svg></button>
+          <button class="round-btn" data-rail="cat-rail" data-dir="1" aria-label="Próximo"><svg><use href="#i-right"/></svg></button>
+        </div>
+      </div>
+      <div class="cat-rail" id="cat-rail"></div>
+    </div>
+  </section>
+
+  <!-- ======================= OBJETIVOS ======================= -->
+  <section class="section section--cream" id="objetivos">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span>Compre por objetivo</p>
+          <h2 class="h2">O que você quer <em>cuidar hoje?</em></h2>
+        </div>
+        <p class="section__sub">Selecionamos os produtos certos para cada estilo de vida. Toque em um objetivo para filtrar a vitrine.</p>
+      </div>
+      <div class="goals" id="goals"></div>
+    </div>
+  </section>
+
+  <!-- ======================= VITRINE ======================= -->
+  <section class="section" id="vitrine">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span>Vitrine</p>
+          <h2 class="h2" id="vitrine-title">Nossos <em>destaques</em></h2>
+          <p class="vitrine__info" id="vitrine-info"></p>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn--soft filters-open" data-open="filters"><svg><use href="#i-filter"/></svg>Filtros<i class="badge badge--inline" id="filters-count" hidden>0</i></button>
+          <label class="select">
+            <span>Ordenar</span>
+            <select id="sort">
+              <option value="destaque">Destaques</option>
+              <option value="menor">Menor preço</option>
+              <option value="maior">Maior preço</option>
+              <option value="az">A–Z</option>
+              <option value="novos">Mais novos</option>
+            </select>
+            <svg><use href="#i-down"/></svg>
+          </label>
+        </div>
+      </div>
+
+      <!-- Vistos recentemente (assets/js/app.js → vistos; fica só neste navegador) -->
+      <div class="vistos" id="vistos" hidden>
+        <div class="vistos__head">
+          <p class="ck__lbl">Você viu recentemente</p>
+          <button class="vistos__limpar" id="vistos-limpar" type="button">Limpar</button>
+        </div>
+        <div class="vistos__rail" id="vistos-rail"></div>
+      </div>
+
+      <div class="shop">
+        <aside class="filters" id="filters" aria-label="Filtros">
+          <div class="filters__head">
+            <b>Filtrar produtos</b>
+            <button class="icon-btn filters__close" data-close aria-label="Fechar filtros"><svg><use href="#i-x"/></svg></button>
+          </div>
+          <div class="filters__body">
+            <div class="fgroup">
+              <h4>Selos & restrições</h4>
+              <div class="chips" id="f-restricoes"></div>
+            </div>
+            <div class="fgroup">
+              <h4>Exibição</h4>
+              <div class="chips"><button class="chip" type="button" data-comfoto aria-pressed="false">Só com foto</button></div>
+            </div>
+            <div class="fgroup">
+              <h4>Departamento</h4>
+              <ul class="flist" id="f-categorias"></ul>
+            </div>
+            <div class="fgroup" id="f-sub-wrap" hidden>
+              <h4>Subcategoria</h4>
+              <div class="chips" id="f-sub"></div>
+            </div>
+            <div class="fgroup">
+              <h4>Faixa de preço <small>(a partir de)</small></h4>
+              <div class="range" id="f-range">
+                <div class="range__track"><i id="range-fill"></i></div>
+                <input type="range" id="f-min" aria-label="Preço mínimo">
+                <input type="range" id="f-max" aria-label="Preço máximo">
+              </div>
+              <div class="range__vals"><span id="f-min-v"></span><span id="f-max-v"></span></div>
+            </div>
+          </div>
+          <div class="filters__foot">
+            <button class="btn btn--soft" id="f-clear">Limpar</button>
+            <button class="btn btn--primary filters__apply" data-close>Ver <span id="f-total">0</span> produtos</button>
+          </div>
+        </aside>
+
+        <div class="results">
+          <div class="active-filters" id="active-filters"></div>
+          <p class="busca-corrigida" id="busca-corrigida" role="status" hidden></p>
+          <div class="pgrid" id="grid" aria-live="polite"></div>
+          <div class="empty" id="empty" hidden>
+            <svg><use href="#i-search"/></svg>
+            <h3>Nada encontrado por aqui</h3>
+            <p>Tente outro termo ou limpe os filtros. Se preferir, pergunte direto no WhatsApp.</p>
+            <div class="empty__ctas"><button class="btn btn--soft" id="empty-clear">Limpar filtros</button><a class="btn btn--primary" data-wa="busca" href="#"><svg><use href="#i-whats"/></svg>Perguntar no WhatsApp</a></div>
+          </div>
+          <div class="more" id="more">
+            <p id="more-info"></p>
+            <div class="more__bar"><i id="more-bar"></i></div>
+            <button class="btn btn--soft" id="more-btn">Ver mais produtos</button>
+            <button class="btn btn--ghost btn--sm" id="less-btn" type="button" hidden>Mostrar menos</button>
+            <div class="sentinel" id="sentinel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= ATACADO B2B ======================= -->
+  <section class="b2b" id="atacado">
+    <div class="b2b__texture" aria-hidden="true"></div>
+    <div class="container b2b__grid">
+      <div class="b2b__copy">
+        <p class="eyebrow eyebrow--light"><span class="dot"></span>Atacado & Revenda</p>
+        <h2 class="h2 h2--light">Abasteça seu negócio com <em>preço de atacado.</em></h2>
+        <p class="b2b__lead">Lojas, mercados e empresas compram direto com preço de atacado, mix completo e atendimento comercial dedicado.</p>
+        <ul class="perks">
+          <li><span><svg><use href="#i-tag"/></svg></span><div><b>Tabela atacado progressiva</b><p>Quanto maior o volume, melhor o preço.</p></div></li>
+          <li><span><svg><use href="#i-box"/></svg></span><div><b>Mix completo</b><p>Todo o catálogo em um só fornecedor.</p></div></li>
+          <li><span><svg><use href="#i-truck"/></svg></span><div><b>Entrega para todo o Brasil</b><p>Despacho ágil e retirada na loja em <span data-cfg="cidadeUf">Cidade/UF</span>.</p></div></li>
+          <li><span><svg><use href="#i-whats"/></svg></span><div><b>Atendimento comercial direto</b><p>Cotações rápidas no WhatsApp, sem robô.</p></div></li>
+        </ul>
+        <div class="b2b__rapido">
+          <button class="btn btn--amber btn--lg" type="button" data-open="modal-rapido"><svg><use href="#i-box"/></svg>Montar pedido rápido</button>
+          <small>Já sabe o que quer? Digite as quantidades direto na lista de produtos e envie de uma vez.</small>
+        </div>
+      </div>
+      <form class="b2b__form" id="b2b-form" novalidate>
+        <h3>Solicite sua cotação</h3>
+        <p>Preencha e enviaremos sua solicitação direto para o nosso WhatsApp comercial.</p>
+        <div class="field"><input id="b-nome" name="nome" required placeholder=" "><label for="b-nome">Seu nome</label></div>
+        <div class="field"><input id="b-empresa" name="empresa" placeholder=" "><label for="b-empresa">Empresa / CNPJ (opcional)</label></div>
+        <div class="field-row">
+          <div class="field"><input id="b-cidade" name="cidade" required placeholder=" "><label for="b-cidade">Cidade/UF</label></div>
+          <div class="field field--select">
+            <select id="b-tipo" name="tipo"><option>Loja / Comércio</option><option>Mercado</option><option>Empresa</option><option>Restaurante</option><option>Consumo próprio em volume</option></select>
+            <label for="b-tipo">Tipo de negócio</label>
+          </div>
+        </div>
+        <div class="field"><textarea id="b-itens" name="itens" rows="3" placeholder=" "></textarea><label for="b-itens">Produtos e volumes de interesse</label></div>
+        <button class="btn btn--amber btn--lg btn--block" type="submit"><svg><use href="#i-whats"/></svg>Enviar cotação pelo WhatsApp</button>
+        <small class="b2b__note">Resposta em horário comercial · <span data-cfg="whatsappExibicao">(00) 00000-0000</span></small>
+      </form>
+    </div>
+  </section>
+
+  <!-- ======================= AVALIAÇÕES ======================= -->
+  <section class="section section--cream" id="avaliacoes">
+    <div class="container reviews">
+      <div class="reviews__score reveal">
+        <div class="gbadge">
+          <span class="gbadge__g" aria-hidden="true"><b style="color:#4285F4">G</b><b style="color:#EA4335">o</b><b style="color:#FBBC05">o</b><b style="color:#4285F4">g</b><b style="color:#34A853">l</b><b style="color:#EA4335">e</b></span>
+          <span>Avaliações</span>
+        </div>
+        <div class="score">
+          <b>5,0</b>
+          <div>
+            <div class="stars stars--lg"><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg><svg><use href="#i-star"/></svg></div>
+            <span>Avaliações dos nossos clientes</span>
+          </div>
+        </div>
+        <p class="reviews__text">Atendimento próximo, variedade e preço justo — é o que nossos clientes dizem.</p>
+        <div class="reviews__ctas">
+          <a class="btn btn--primary" target="_blank" rel="noopener" data-href="google">Ver todas no Google<svg><use href="#i-arrow"/></svg></a>
+          <a class="btn btn--soft" target="_blank" rel="noopener" data-href="google"><svg><use href="#i-star"/></svg>Avaliar a loja</a>
+        </div>
+      </div>
+      <div class="reviews__list" id="reviews"></div>
+    </div>
+  </section>
+
+  <!-- ======================= INSTAGRAM ======================= -->
+  <section class="section" id="instagram">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <p class="eyebrow"><span class="dot"></span>@<span data-cfg="instagram">sualoja</span></p>
+          <h2 class="h2">Siga nosso <em>dia a dia</em></h2>
+        </div>
+        <a class="btn btn--soft" target="_blank" rel="noopener" data-href="instagram"><svg><use href="#i-insta"/></svg>Seguir no Instagram</a>
+      </div>
+      <div class="insta" id="insta"></div>
+    </div>
+  </section>
+
+  <!-- ======================= SOBRE + LOCALIZAÇÃO ======================= -->
+  <section class="section section--cream" id="sobre">
+    <div class="container about">
+      <div class="about__story">
+        <p class="eyebrow"><span class="dot"></span>Sobre nós</p>
+        <h2 class="h2">Conheça a <em>nossa loja.</em></h2>
+        <p>[Texto sobre a empresa: história, propósito e diferenciais. Editar em index.html, seção "Sobre".]</p>
+        <p>Atendemos varejo e atacado com o mesmo cuidado: produtos conferidos, preço justo e atendimento próximo, na loja e no WhatsApp.</p>
+        <div class="about__pillars">
+          <div><svg><use href="#i-box"/></svg><b>Estoque organizado</b><span>Reposição constante</span></div>
+          <div><svg><use href="#i-shield"/></svg><b>Qualidade conferida</b><span>Fornecedores selecionados</span></div>
+          <div><svg><use href="#i-user"/></svg><b>Atendimento próximo</b><span>Gente de verdade, no WhatsApp e na loja</span></div>
+        </div>
+      </div>
+
+      <div class="visit" id="visit">
+        <div class="visit__map"><iframe title="Mapa da loja" loading="lazy" referrerpolicy="no-referrer-when-downgrade" data-src="mapa"></iframe></div>
+        <div class="visit__body">
+          <div class="visit__status" id="open-status"><i></i><span>Verificando horário…</span></div>
+          <h3><span data-cfg="nome">Sua Loja</span></h3>
+          <p class="visit__sub" data-cfg="subtitulo">Atacado e varejo</p>
+          <ul class="visit__list">
+            <li><svg><use href="#i-pin"/></svg><span data-cfg="enderecoCompleto">Endereço da loja</span></li>
+            <li><svg><use href="#i-whats"/></svg><a data-href="whatsapp"><span data-cfg="whatsappExibicao">(00) 00000-0000</span> <small>WhatsApp</small></a></li>
+            <li><svg><use href="#i-phone"/></svg><a data-href="telefone"><span data-cfg="telefoneExibicao">(00) 0000-0000</span> <small>Fixo</small></a></li>
+            <li><svg><use href="#i-clock"/></svg><span data-cfg="horariosHtml">Horário de atendimento</span></li>
+          </ul>
+          <div class="visit__ctas">
+            <a class="btn btn--primary" target="_blank" rel="noopener" data-href="rota"><svg><use href="#i-pin"/></svg>Como chegar</a>
+            <a class="btn btn--soft" data-href="whatsapp" target="_blank" rel="noopener"><svg><use href="#i-whats"/></svg>Chamar no WhatsApp</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand">
+      <a href="#inicio" class="logo logo--light" aria-label="Início"><span class="badge-logo"><svg class="brand" aria-hidden="true"><use href="#brand-logo"/></svg></span></a>
+      <p>Atacado e varejo em <span data-cfg="cidadeUf">Cidade/UF</span> — enviamos para todo o Brasil.</p>
+      <div class="footer__social">
+        <a data-href="instagram" target="_blank" rel="noopener" aria-label="Instagram"><svg><use href="#i-insta"/></svg></a>
+        <a data-href="whatsapp" target="_blank" rel="noopener" aria-label="WhatsApp"><svg><use href="#i-whats"/></svg></a>
+      </div>
+    </div>
+    <div><h4>Departamentos</h4><ul id="footer-cats"></ul></div>
+    <div><h4>Institucional</h4><ul><li><a href="#sobre">Sobre nós</a></li><li><a href="#atacado">Atacado & Revenda</a></li><li><a href="#avaliacoes">Avaliações</a></li><li><a href="#instagram">Instagram</a></li><li><a href="privacidade.html">Privacidade e termos</a></li></ul></div>
+    <div><h4>Atendimento</h4><ul><li><span data-cfg="whatsappExibicao">(00) 00000-0000</span> · WhatsApp</li><li><span data-cfg="telefoneExibicao">(00) 0000-0000</span> · Fixo</li><li data-cfg="horariosHtml">Horário de atendimento</li><li data-cfg="enderecoCompleto">Endereço da loja</li></ul></div>
+  </div>
+  <div class="container footer__bottom">
+    <span>© <span id="year"></span> <span data-cfg="nome">Sua Loja</span> · <a class="footer__admin" href="admin/index.html" rel="nofollow"><svg><use href="#i-shield"/></svg>Área administrativa</a></span>
+    <span class="footer__pay"><i>Pix</i><i>Crédito</i><i>Débito</i><i>Dinheiro</i></span>
+  </div>
+</footer>
+
+<!-- ======================= FLUTUANTES ======================= -->
+<button class="topo-fab" id="topo-fab" type="button" aria-label="Voltar ao topo" hidden><svg><use href="#i-up"/></svg></button>
+<a class="wa-fab" data-href="whatsapp" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+  <svg><use href="#i-whats"/></svg><span>Fale com a gente</span>
+</a>
+
+<nav class="bottom-nav" aria-label="Navegação inferior">
+  <a href="#inicio" class="is-active"><svg><use href="#i-home"/></svg><span>Início</span></a>
+  <button data-open="drawer-menu"><svg><use href="#i-grid"/></svg><span>Categorias</span></button>
+  <button data-action="focus-search"><svg><use href="#i-search"/></svg><span>Buscar</span></button>
+  <button data-open="drawer-fav"><svg><use href="#i-heart"/></svg><span>Favoritos</span><i class="badge" data-count="fav" hidden>0</i></button>
+  <button data-open="drawer-cart"><svg><use href="#i-bag"/></svg><span>Carrinho</span><i class="badge" data-count="cart" hidden>0</i></button>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- Drawer: Carrinho -->
+<aside class="drawer drawer--right" id="drawer-cart" aria-label="Carrinho" aria-hidden="true">
+  <div class="drawer__head"><h3><svg><use href="#i-bag"/></svg>Seu carrinho <small id="cart-qty"></small></h3><button class="icon-btn" data-close aria-label="Fechar"><svg><use href="#i-x"/></svg></button></div>
+  <div class="ship" id="ship"><p id="ship-text"></p><div class="ship__bar"><i id="ship-bar"></i></div></div>
+  <div class="drawer__body" id="cart-items"></div>
+  <div class="drawer__foot" id="cart-foot">
+    <div class="sum"><span>Subtotal</span><b id="cart-subtotal">R$ 0,00</b></div>
+    <p class="sum__note">Frete e descontos de atacado calculados no fechamento.</p>
+    <button class="btn btn--primary btn--lg btn--block" id="go-checkout"><svg><use href="#i-shield"/></svg>Finalizar compra</button>
+    <button class="btn btn--wa btn--lg btn--block" id="cart-wa"><svg><use href="#i-whats"/></svg>Enviar pedido pelo WhatsApp</button>
+  </div>
+</aside>
+
+<!-- Drawer: Favoritos -->
+<aside class="drawer drawer--right" id="drawer-fav" aria-label="Favoritos" aria-hidden="true">
+  <div class="drawer__head"><h3><svg><use href="#i-heart"/></svg>Lista de desejos</h3><button class="icon-btn" data-close aria-label="Fechar"><svg><use href="#i-x"/></svg></button></div>
+  <div class="drawer__body" id="fav-items"></div>
+</aside>
+
+<!-- Drawer: Menu (mobile) -->
+<aside class="drawer drawer--left" id="drawer-menu" aria-label="Menu" aria-hidden="true">
+  <div class="drawer__head"><h3><svg><use href="#i-grid"/></svg>Departamentos</h3><button class="icon-btn" data-close aria-label="Fechar"><svg><use href="#i-x"/></svg></button></div>
+  <div class="drawer__body" id="menu-items"></div>
+  <div class="drawer__foot menu-foot">
+    <button class="btn btn--primary btn--block" data-open="modal-conta"><svg><use href="#i-user"/></svg><span>Minha conta</span></button>
+    <button class="btn btn--ghost btn--block" data-meus-pedidos><svg><use href="#i-truck"/></svg>Meus pedidos</button>
+    <a href="#atacado" class="btn btn--soft btn--block"><svg><use href="#i-box"/></svg>Atacado & Revenda</a>
+    <a data-href="whatsapp" target="_blank" rel="noopener" class="btn btn--wa btn--block"><svg><use href="#i-whats"/></svg><span data-cfg="whatsappExibicao">WhatsApp</span></a>
+  </div>
+</aside>
+
+<!-- Modal: Espiada rápida -->
+<div class="modal" id="modal-qv" role="dialog" aria-modal="true" aria-label="Detalhes do produto" aria-hidden="true">
+  <div class="modal__card modal__card--wide" id="qv-content"></div>
+</div>
+
+<!-- Modal: Pedido rápido de atacado (assets/js/app.js → "Pedido rápido de atacado") -->
+<div class="modal" id="modal-rapido" role="dialog" aria-modal="true" aria-labelledby="pr-titulo" aria-hidden="true">
+  <div class="modal__card modal__card--wide pr">
+    <button class="icon-btn modal__x" data-close aria-label="Fechar"><svg><use href="#i-x"/></svg></button>
+    <div class="pr__head">
+      <p class="eyebrow"><span class="dot"></span>Atacado &amp; Revenda</p>
+      <h3 id="pr-titulo">Pedido rápido</h3>
+      <p>Digite a quantidade ao lado de cada produto (granel em kg, embalados em unidades) e envie tudo de uma vez para o WhatsApp comercial.
+        Os valores são a <b>referência do varejo</b> — o comercial responde com a tabela de atacado.</p>
+    </div>
+    <div class="pr__filtros">
+      <div class="field"><input id="pr-busca" type="search" placeholder=" " autocomplete="off"><label for="pr-busca">Buscar produto ou código</label></div>
+      <div class="field field--select"><select id="pr-cat"></select><label for="pr-cat">Departamento</label></div>
+    </div>
+    <div class="pr__lista" id="pr-lista" role="list" aria-label="Produtos"></div>
+    <p class="pr__mais" id="pr-mais"></p>
+    <div class="pr__fim">
+      <div class="pr__resumo">
+        <span><b id="pr-n">0</b> itens · referência <b id="pr-total">R$ 0,00</b></span>
+        <button type="button" class="end__lnk" id="pr-so" aria-pressed="false">Ver escolhidos (0)</button>
+      </div>
+      <div class="field-row">
+        <div class="field"><input id="pr-nome" placeholder=" " autocomplete="name"><label for="pr-nome">Seu nome</label></div>
+        <div class="field"><input id="pr-cidade" placeholder=" " autocomplete="address-level2"><label for="pr-cidade">Cidade/UF</label></div>
+      </div>
+      <div class="field"><input id="pr-empresa" placeholder=" " autocomplete="organization"><label for="pr-empresa">Empresa / CNPJ (opcional)</label></div>
+      <div class="pr__acoes">
+        <button type="button" class="btn btn--wa btn--lg" id="pr-wa" disabled><svg><use href="#i-whats"/></svg>Enviar pelo WhatsApp</button>
+        <button type="button" class="btn btn--soft btn--lg" id="pr-copiar" disabled>Copiar lista</button>
+        <button type="button" class="btn btn--soft btn--lg" id="pr-limpar" disabled><svg><use href="#i-trash"/></svg>Limpar</button>
+      </div>
+      <small class="pr__nota">O WhatsApp abre com a mensagem pronta; o pedido só chega à loja quando você toca em enviar. Os itens ficam salvos neste aparelho; seus dados de contato não são guardados. <a href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></small>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Checkout simulado -->
+<div class="modal" id="modal-checkout" role="dialog" aria-modal="true" aria-label="Finalizar compra" aria-hidden="true">
+  <div class="modal__card" id="checkout-content"></div>
+</div>
+
+<!-- Modal: Minha conta (conteúdo gerado por assets/js/conta.js) -->
+<div class="modal" id="modal-conta" role="dialog" aria-modal="true" aria-label="Minha conta" aria-hidden="true">
+  <div class="modal__card modal__card--sm modal__card--conta" id="conta-content"></div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<!-- Dados → motor → interface -->
+<script src="assets/js/config.js"></script>
+<script src="data/produtos.js"></script>
+<script src="data/produtos-ajustes.js"></script>
+<script src="data/destaques.js"></script>
+<script src="data/fotos.js"></script>
+<script src="data/fotos-reais.js"></script>
+<script src="data/fotos-unsplash.js"></script>
+<script src="data/fotos-ocultas.js"></script>
+<script src="assets/js/catalog.js"></script>
+<script src="assets/js/conta-api.js"></script>
+<script src="assets/js/endereco.js"></script>
+<script src="assets/js/cupons.js"></script>
+<script src="assets/vendor/gsap.min.js" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js" defer></script>
+<script src="assets/js/seo-produto.js" defer></script>
+<script src="assets/js/app.js" defer></script>
+<script src="assets/js/conta.js" defer></script>
+</body>
+</html>

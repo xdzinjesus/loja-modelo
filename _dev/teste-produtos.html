@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Teste produtos admin</title>
+<style>body{font:13px monospace;margin:0} iframe{width:1366px;height:860px;border:0;display:block}</style>
+<pre id="out">RODANDO</pre><iframe id="adm"></iframe><iframe id="site"></iframe>
+<script>
+// Testa a edição de nome/preço/descrição pelo admin (servidor local) e se o site mostra. Usa o produto 4249 e restaura no fim.
+(async () => {
+  const out = []; let falhas = 0; const SKU = '4249';
+  const log = (ok, m) => { out.push((ok ? 'OK   ' : 'FALHA') + ' ' + m); if (!ok) falhas++; };
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const ate = async (fn, ms = 20000) => { const t = Date.now(); while (Date.now() - t < ms) { try { const v = fn(); if (v) return v; } catch {} await espera(100); } return null; };
+  const texto = async (u) => (await fetch(u + '?x=' + Date.now(), { cache: 'no-store' })).text();
+  try {
+    sessionStorage.clear();
+    const f = document.getElementById('adm');
+    await new Promise((r) => { f.onload = r; f.src = '/admin/'; });
+    const W = f.contentWindow, D = f.contentDocument;
+    const erros = []; W.addEventListener('error', (e) => erros.push(e.message));
+    W.confirm = () => true;
+    await ate(() => D.getElementById('f-login'));
+    D.getElementById('f-login').elements.pin.value = W.LOJA_CONFIG.contas.painelPin;
+    D.getElementById('f-login').requestSubmit();
+    await ate(() => D.querySelector('.kpis'));
+    W.location.hash = '#fotos/' + SKU;
+    const form = await ate(() => D.querySelector('#foto-painel [data-form-dados]'));
+    log(!!form, 'painel do produto mostra o formulário de dados');
+    const o = W.LOJA_PRODUTOS.find((p) => p.codigo_sku === SKU);
+    form.nome.value = o.nome + ' TESTE'; form.preco.value = '12,34'; form.descricao.value = 'Descrição de teste <b>x</b>';
+    form.requestSubmit();
+    await ate(() => [...D.querySelectorAll('#toasts .toast')].some((t) => t.textContent.includes('atualizado')));
+    const js = await texto('/data/produtos-ajustes.js');
+    log(js.includes('"preco":12.34') && js.includes('TESTE') && js.includes('Descrição de teste'), 'gravado em data/produtos-ajustes.js');
+    log(W.LojaCatalog.porId.get(SKU).preco === 12.34, 'admin atualiza o produto na hora');
+    log(!!D.querySelector('#foto-painel [data-dados-original]'), 'mostra "Voltar ao original"');
+    // site
+    const s = document.getElementById('site');
+    await new Promise((r) => { s.onload = r; s.src = '/?p=' + SKU + '&x=' + Date.now(); });
+    const SW = s.contentWindow; await ate(() => SW.LojaCatalog);
+    const sp = SW.LojaCatalog.porId.get(SKU);
+    log(sp.preco === 12.34 && sp.nome.endsWith('TESTE') && sp.descricao.startsWith('Descrição de teste'), 'site usa nome, preço e descrição editados');
+    const aberto = await ate(() => [...s.contentDocument.querySelectorAll('p')].find((p) => p.textContent.includes('Descrição de teste')));
+    log(!!aberto && !aberto.querySelector('b'), 'descrição aparece no produto sem virar HTML');
+    // preço inválido
+    const f2 = D.querySelector('#foto-painel [data-form-dados]'); f2.preco.value = 'abc'; f2.requestSubmit(); await espera(300);
+    log(/Preço inválido/.test(D.querySelector('[data-status-dados]').textContent), 'recusa preço inválido');
+    // voltar ao original
+    D.querySelector('#foto-painel [data-dados-original]').click();
+    await ate(() => [...D.querySelectorAll('#toasts .toast')].some((t) => t.textContent.includes('original')));
+    log(!(await texto('/data/produtos-ajustes.js')).includes(`"${SKU}"`), 'voltar ao original remove o ajuste');
+    log(W.LojaCatalog.porId.get(SKU).preco === o.preco, 'preço original de volta no admin');
+    log(!erros.length, 'sem erros de JavaScript ' + erros.join(' | '));
+  } catch (e) { log(false, 'exceção: ' + e.message); }
+  const res = (falhas ? `RESULTADO: ${falhas} FALHA(S)` : 'RESULTADO: TUDO OK') + ` (${out.length})\n\n` + out.join('\n');
+  document.getElementById('out').textContent = res;
+  fetch('/_save-tmp', { method: 'POST', body: res });
+})();
+</script>

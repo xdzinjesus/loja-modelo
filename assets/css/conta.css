@@ -1,0 +1,150 @@
+/* ==========================================================================
+   LOJA — Área do cliente (assets/js/conta.js)
+   Usa os tokens de styles.css (cores, raios, sombras, easing).
+   ========================================================================== */
+.modal__card--conta { transition: width .4s var(--ease), opacity .35s var(--ease), transform .45s var(--ease); }
+.modal__card--conta.modal__card--conta-larga { width: min(620px, 100%); }
+.conta--form { text-align: left; }
+.conta--form > .conta__icon, .conta--form > h3, .conta--form > p { text-align: center; }
+.conta--form form { margin-top: 6px; }
+.conta__link { color: var(--terra); font-weight: 800; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; gap: 4px; }
+.conta__link:hover { color: var(--terra-2); }
+.conta__link--dir { display: flex; margin: -4px 0 14px auto; font-size: 13px; }
+.conta .conta__troca { text-align: center; margin: 18px 0 0; font-size: 14px; }
+.conta__check { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); margin: 0 0 14px; cursor: pointer; line-height: 1.45; }
+.conta__check input { accent-color: var(--forest); width: 17px; height: 17px; margin-top: 1px; flex: none; }
+
+/* Campos */
+.field__erro { display: block; color: var(--terra); font-size: 12.5px; font-weight: 700; margin: 5px 4px 0; }
+.conta .form-erro, .form-erro { background: #FBEDE8; color: var(--terra-2); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; font-weight: 700; margin: 0 0 14px; text-align: left; }
+.field--senha input { padding-right: 52px; }
+/* Esconde o "olho" nativo do Edge/IE: o site já tem o próprio botão de mostrar senha */
+input[type="password"]::-ms-reveal, input[type="password"]::-ms-clear { display: none; }
+.field__olho { position: absolute; right: 8px; top: 9px; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: var(--muted); font-size: 19px; }
+.field__olho:hover, .field__olho.is-on { color: var(--forest); background: var(--cream); }
+.field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 15px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+.field input[readonly] { background: var(--cream); color: var(--muted); }
+
+/* Botão carregando */
+.btn.is-loading { pointer-events: none; color: transparent !important; position: relative; }
+.btn.is-loading::after { content: ''; position: absolute; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 2.5px solid var(--fg, #fff); border-right-color: transparent; animation: spin .7s linear infinite; }
+
+/* Mensagens */
+.conta-msg { display: flex; gap: 10px; align-items: flex-start; border-radius: 14px; padding: 12px 14px; font-size: 13.5px; margin: 0 0 16px; text-align: left; animation: fadeUp .4s var(--ease); }
+.conta-msg svg { font-size: 19px; flex: none; margin-top: 1px; }
+.conta-msg a { color: inherit; }
+.conta-msg--ok { background: #E0ECFF; color: #1E3A8A; }
+.conta-msg--alerta { background: #FBF1DE; color: #7A5317; }
+.conta-msg--erro { background: #FBEDE8; color: var(--terra-2); }
+
+/* Painel do cliente logado */
+.conta-painel { padding: 28px 28px 24px; }
+.conta-topo { display: flex; align-items: center; gap: 14px; padding-right: 44px; margin-bottom: 16px; }
+.conta-topo h3 { font-family: var(--f-display); font-size: 24px; margin: 0; color: var(--forest); line-height: 1.1; }
+.conta-topo small { display: block; color: var(--muted); font-size: 13px; margin: 2px 0 6px; word-break: break-all; }
+.conta-avatar { width: 56px; height: 56px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--forest); color: var(--cream); font-weight: 800; font-size: 19px; letter-spacing: .04em; box-shadow: 0 0 0 4px rgba(96, 165, 250, .25); }
+.conta-tabs { margin: 0 0 18px; }
+.conta-tabs button { display: inline-flex; align-items: center; gap: 7px; }
+.conta-tabs svg { font-size: 16px; }
+.conta-corpo { animation: fadeUp .35s var(--ease); }
+.conta-sep { margin-top: 22px; padding-top: 20px; border-top: 1px dashed var(--line-2); }
+.conta-rodape { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); }
+.conta-load { display: flex; justify-content: center; gap: 6px; padding: 40px 0; }
+.conta-load i { width: 9px; height: 9px; border-radius: 50%; background: var(--leaf); animation: contaPulse 1s var(--ease) infinite; }
+.conta-load i:nth-child(2) { animation-delay: .15s; }
+.conta-load i:nth-child(3) { animation-delay: .3s; }
+@keyframes contaPulse { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: none; } }
+.conta-vazio { padding: 26px 10px; }
+
+/* Selos */
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.pill svg { font-size: 13px; }
+.pill--amber { background: #FBF1DE; color: #8A5A12; }
+.pill--leaf { background: #E0ECFF; color: #1D4ED8; }
+.pill--forest { background: var(--forest); color: var(--cream); }
+.pill--terra { background: #FBEDE8; color: var(--terra-2); }
+
+/* Pedidos */
+.pedidos { display: grid; gap: 10px; }
+.pedido { border-radius: 16px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; transition: box-shadow .25s var(--ease); }
+.pedido.is-open { box-shadow: inset 0 0 0 1.5px var(--leaf), var(--shadow-sm); }
+.pedido__head { width: 100%; display: grid; grid-template-columns: 1fr auto auto 18px; align-items: center; gap: 12px; padding: 14px 16px; text-align: left; }
+.pedido__num b { display: block; font-size: 15px; color: var(--forest); letter-spacing: .02em; }
+.pedido__num small { color: var(--muted); font-size: 12.5px; }
+.pedido__total { font-size: 15px; color: var(--ink); }
+.pedido__chev { color: var(--muted); transition: transform .3s var(--ease); }
+.pedido.is-open .pedido__chev { transform: rotate(180deg); }
+.pedido__body { padding: 4px 16px 16px; animation: fadeUp .35s var(--ease); }
+.pedido__itens { list-style: none; margin: 14px 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.pedido__itens li { display: flex; justify-content: space-between; gap: 12px; }
+.pedido__itens small { color: var(--muted); }
+.pedido__info { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; }
+.pedido__info svg { color: var(--leaf); font-size: 17px; }
+.pedido__notas { list-style: none; margin: 0 0 12px; padding: 10px 12px; background: var(--cream); border-radius: 12px; font-size: 13.5px; display: grid; gap: 6px; }
+.pedido__notas small { display: block; color: var(--muted); font-size: 11.5px; }
+.pedido__acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Linha do tempo do pedido */
+.trilha { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.trilha li { position: relative; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding-top: 22px; overflow-wrap: anywhere; line-height: 1.25; }
+.trilha li i { position: absolute; top: 4px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--cream-2); z-index: 1; }
+.trilha li::before { content: ''; position: absolute; top: 9px; left: -50%; right: 50%; height: 2px; background: var(--cream-2); }
+.trilha li:first-child::before { display: none; }
+.trilha li.ok, .trilha li.atual { color: var(--forest); }
+.trilha li.ok i, .trilha li.ok::before, .trilha li.atual::before { background: var(--leaf); }
+.trilha li.atual i { background: var(--forest); box-shadow: 0 0 0 4px rgba(96, 165, 250, .3); }
+.trilha--cancelado { display: flex; align-items: center; gap: 8px; color: var(--terra-2); background: #FBEDE8; border-radius: 12px; padding: 10px 12px; font-weight: 700; font-size: 14px; margin-top: 8px; }
+
+/* Atacado */
+.conta-intro h4 { font-family: var(--f-display); font-size: 20px; color: var(--forest); margin: 0 0 4px; }
+.conta-intro p { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+.conta-beneficios { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 7px; font-size: 14px; color: var(--ink-2); }
+.conta-beneficios li { display: flex; gap: 8px; align-items: flex-start; }
+.conta-beneficios svg { color: var(--leaf); font-size: 17px; margin-top: 1px; }
+.conta-status { display: flex; gap: 12px; align-items: flex-start; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; }
+.conta-status > svg { font-size: 24px; flex: none; }
+.conta-status b { display: block; font-size: 15px; }
+.conta-status small { font-size: 13px; opacity: .85; }
+.conta-status--ok { background: #E0ECFF; color: #1E3A8A; }
+.conta-status--pend { background: #FBF1DE; color: #7A5317; }
+.conta-status--nao { background: #FBEDE8; color: var(--terra-2); }
+.conta-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0 0 16px; font-size: 14px; background: var(--cream); border-radius: 14px; padding: 12px 16px; }
+.conta-dl dt { color: var(--muted); font-weight: 700; }
+.conta-dl dd { margin: 0; }
+
+/* Checkout ↔ conta */
+.ck .ck__conta { display: flex; gap: 10px; align-items: center; font-size: 13.5px; color: var(--ink-2); background: var(--cream); border-radius: 12px; padding: 10px 12px; margin: 14px 0 0; }
+.ck__conta svg { color: var(--leaf); font-size: 18px; }
+.ck__conta button { color: var(--terra); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.ck__conta em { font-style: normal; color: var(--leaf); font-weight: 800; }
+.ck .ck__cep { display: flex; gap: 8px; align-items: center; min-height: 20px; margin: -6px 2px 12px; font-size: 13px; color: var(--ink-2); }
+.ck__cep svg { color: var(--leaf); font-size: 16px; flex: none; }
+.ck__cep--erro { color: var(--terra); font-weight: 700; }
+.ck__aviso { background: #FBF1DE; color: #7A5317; border-radius: 12px; padding: 10px 12px; font-size: 13px; margin: 12px 0 0; }
+
+/* Link discreto para a área administrativa (rodapé) */
+.footer__admin { color: inherit; opacity: .7; text-decoration: none; transition: opacity .2s; white-space: nowrap; }
+.footer__admin:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.footer__admin svg { font-size: 13px; vertical-align: -2px; margin-right: 4px; }
+
+/* Cabeçalho com cliente logado */
+.icon-link.is-logado svg { color: var(--leaf); }
+.icon-link.is-logado span { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#modal-conta { grid-template-columns: minmax(0, 1fr); }
+.modal__card--conta { min-width: 0; }
+.pedido__num, .pedido__itens span { min-width: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  #modal-conta .modal__card--conta { width: 100%; }
+  .conta-painel { padding: 22px 18px 18px; }
+  .conta-topo { padding-right: 48px; }
+  .conta-tabs button { padding: 10px 9px; font-size: 13px; }
+  .conta-tabs svg { display: none; }
+  .pedido__head { grid-template-columns: 1fr auto 18px; }
+  .pedido__head .pill { grid-column: 1; justify-self: start; grid-row: 2; }
+  .pedido__total { grid-row: 1; grid-column: 2; }
+  .pedido__chev { grid-row: 1; grid-column: 3; }
+  .trilha li span { font-size: 9.5px; }
+  .conta .field-row, .conta-corpo .field-row { flex-direction: column; gap: 0; }
+}
